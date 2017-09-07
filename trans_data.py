@@ -39,35 +39,24 @@ class Trans_Data(object):
         return
 
     @property
-    def WID_key(self):
-        return self._WID_key
+    def WID_key(self): return self._WID_key
     @property
-    def is_WID(self):
-        return self._is_WID
+    def is_WID(self): return self._is_WID
     @property
-    def key(self):
-        return self._key
+    def key(self): return self._key
     @property
-    def parent_key(self):
-        return self._parent.key
+    def parent_key(self): return self._parent.key
     @property
-    def parent(self):
-        return self._parent
+    def parent(self): return self._parent
     @property
-    def id_type(self):
-        return self._id_type
+    def id_type(self): return self._id_type
     @property
-    def id_value(self):
-        return self._id_value
+    def id_value(self): return self._id_value
     @property
-    def base_value(self):
-        return self._base_value
+    def base_value(self): return self._base_value
     @property
-    def translated_value(self):
-        return self._translated_value
+    def translated_value(self): return self._translated_value
     @property
-    def element(self):
-        return self._element
+    def element(self): return self._element
     @property
-    def has_translation(self):
-        return self._has_translation
+    def has_translation(self): return self._has_translation

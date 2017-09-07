@@ -29,6 +29,18 @@ class Trans_Obj(object):
             self._WID_dict[trans_data.WID_key].append(trans_data)
         return
 
+    def get_inconsistent_translations(self):
+        """
+            Check to see where we have identical base values translated differently
+        """
+        t_dict = {}
+        for to in self._trans_data_dict.values():
+            if not to.has_translation:
+                continue
+            if to.base_value in t_dict:
+                if t_dict[to.base_value] == to.translated_value
+
+
 
     def remove_untranslated_data(self):
         for d in self._trans_data_dict.values():

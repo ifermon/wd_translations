@@ -1,4 +1,25 @@
 #!/usr/bin/env python
+"""
+    As of Sep 2017 when this was first written it was designed to be used as follows:
+    Craate a translation implentation suite. Add a task for each supported language
+    OX that suite to the target tenant
+    Now create populated templates for each language using WD xml. The file may 
+    be zipped, but it should be just a single file per language.
+    Do this for the source and destination tenant
+    Now run this script, 
+        load_xml_translations.py <source file> <destination file>
+
+        Source and destination file will remain unchanged, but a new file named out.xml will be created. 
+        Load out.xml into the destination tenant.
+        You can change the name using the -output_file_name option
+    The files created by the tenants can be very large, if you want a smaller file to test with you can generate
+    files by class name using the -class_name option. You can use it more than once
+    TODO:
+        Add database support
+        Implement REST integration 
+        Lots more comments
+
+"""
 from __init__ import *
 from tenant import Tenant
 from trans_obj import Trans_Obj
@@ -18,11 +39,18 @@ def parse_command_line():
     parser.add_argument("-class_name", action="append", default=[], help="Generate files that contain only those class names. Generates files and quits")
     return parser.parse_args()
 
-def p(e):
-    return etree.tostring(e, pretty_print=True)
+"""
+    Convenience functions
+"""
+def p(e): return etree.tostring(e, pretty_print=True)
 def pr(e): return etree.tostring(e, pretty_print=False)
 
 def load_xml_data_into_tenant(file_name, tenant_name):
+    """
+        In this context texant is the object Tenant, not the WD tenant
+        Almost all of the xml logic is here aside from adding a new 
+        translated value
+    """
     tree = etree.parse(file_name)
     root = tree.getroot()
     tenant = Tenant(tenant_name, tree)
@@ -94,4 +122,4 @@ if __name__ == "__main__":
         dest_tenant.add_translation(translated_item)
 
     dest_tenant.remove_empty_translations()
-    dest_tenant.tree.write("works.xml")
+    dest_tenant.tree.write(args.output_file_name)
