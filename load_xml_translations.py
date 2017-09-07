@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 from __init__ import *
 from tenant import Tenant
 from trans_obj import Trans_Obj
@@ -8,8 +9,8 @@ from lxml import etree
 
 def parse_command_line():
     parser = argparse.ArgumentParser(description="Takes translation files from one tenant and puts the values into the file from another tenant")
-    parser.add_argument("source_file", metavar="Source file", help="This is the source file - the file that has the translated values")
-    parser.add_argument("dest_file", help="This is the destination file - the file that receives the translated values")
+    parser.add_argument("source_file", metavar="<Source file>", help="This is the source file - the file that has the translated values")
+    parser.add_argument("dest_file", metavar="<Destination file>", help="This is the destination file - the file that receives the translated values")
     #parser.add_argument("-m", "--mode", default="XML", help="Defines the type of input (xml,db, etc)")
     parser.add_argument("-destination_name", help="Name for the destination tenant. Optional. If not provided the filename will be used.")
     parser.add_argument("-source_name", help="Name for the source tenant. Optional. If not provided the filename will be used.")
@@ -91,5 +92,6 @@ if __name__ == "__main__":
 
     for translated_item in source_tenant.get_translated_items():
         dest_tenant.add_translation(translated_item)
-        pass
 
+    dest_tenant.remove_empty_translations()
+    dest_tenant.tree.write("works.xml")

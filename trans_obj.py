@@ -1,3 +1,4 @@
+from collections import defaultdict
 """
 
 """
@@ -11,22 +12,26 @@ class Trans_Obj(object):
         self._namespace = namespace
         self._element = element
         self._has_translations = False
-        self._trans_data_list = []
+        self._trans_data_dict = {}
         self._key = "{}{}{}{}".format(language, class_name, name, namespace)
+        self._WID_dict = defaultdict(list)
         return
 
     def add_parent(self, parent):
         self._parent = parent
 
     def put_trans_data(self, trans_data):
-        self._trans_data_list.append(trans_data)
+        self._trans_data_dict[trans_data.key] = trans_data
         trans_data.add_parent(self)
         if trans_data.has_translation:
             self._has_translations = True
+        if trans_data.is_WID:
+            self._WID_dict[trans_data.WID_key].append(trans_data)
         return
 
+
     def remove_untranslated_data(self):
-        for d in self._trans_data_list:
+        for d in self._trans_data_dict.values():
             if not d.has_translation:
                 self._element.remove(d.element)
         return
@@ -34,13 +39,22 @@ class Trans_Obj(object):
     def get_translated_items(self):
         ret_list = []
         if self._has_translations:
-            for td in self._trans_data_list:
+            for td in self._trans_data_dict.values():
                 if td.has_translation:
                     ret_list.append(td)
         return ret_list
 
     def update_translation(self, translation):
-        pass
+        """
+            Passes a Trans_Data object, compare to my objects
+        """
+        if translation.is_WID:
+            for td in self._WID_dict[translation.WID_key]:
+                td.add_translation(translation)
+        else:
+            self._trans_data_dict[translation.key].add_translation(translation)
+        return
+        
 
     @property
     def key(self):

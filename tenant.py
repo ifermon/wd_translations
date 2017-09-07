@@ -30,7 +30,7 @@ class Tenant(object):
     def get_translated_items(self):
         ret_list = []
         for to in self._trans_obj_dict.values():
-            ret_list.append(to.get_translated_items())
+            ret_list += to.get_translated_items()
         return ret_list
 
     def add_translation(self, translation):
@@ -39,7 +39,6 @@ class Tenant(object):
         except KeyError:
             print("Failed to find matching entry for {}".format(translation))
         
-
     @property
     def name(self):
         return self._name

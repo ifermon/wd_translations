@@ -10,28 +10,40 @@ class Trans_Data(object):
         self._id_value = id_value
         self._base_value = base_value
         self._translated_value = translated_value
-        if translated_value is None:
-            self._has_translation = False
-        else:
+        if translated_value:
             self._has_translation = True
-        self._element = element
-        if id_type == "WID":
-            self._key = "{}{}".format(id_type, base_value)
         else:
-            self._key = "{}{}{}".format(id_type, id_value, base_value)
+            self._has_translation = False
+        self._element = element
+        self._key = u"{}{}{}".format(id_type, id_value, base_value)
+        if self._id_type == "WID":
+            self._is_WID = True
+            self._WID_key = "{}{}".format(id_type, base_value)
+        else:
+            self._is_WID = False
+            self._WID_key = None
         return
 
     def add_parent(self, parent):
         self._parent = parent
         return
 
-    def add_translation(self, t_str):
-        self._translated_value = t_str
-        e = t_str.element.find('{urn:com.workday/bsvc}Translated_Value')
+    def add_translation(self, translation):
+        """
+            translation is a Trans_Data object
+        """
+        self._translated_value = translation.translated_value
+        e = translation.element.find('{urn:com.workday/bsvc}Translated_Value')
         self._element.append(e)
         self._has_translation = True
         return
 
+    @property
+    def WID_key(self):
+        return self._WID_key
+    @property
+    def is_WID(self):
+        return self._is_WID
     @property
     def key(self):
         return self._key
