@@ -5,12 +5,14 @@
 
 class Trans_Data(object):
 
-    def __init__(self, id_type, id_value, base_value, translated_value, element=None):
+    def __init__(self, id_type, id_value, base_value, translated_value, rich_base_value, translated_rich_value, element=None):
         self._id_type = id_type
         self._id_value = id_value
         self._base_value = base_value
         self._translated_value = translated_value
-        if translated_value:
+        self._rich_base_value = rich_base_value
+        self._translated_rich_value = translated_rich_value
+        if translated_value or translated_rich_value:
             self._has_translation = True
         else:
             self._has_translation = False
@@ -18,7 +20,7 @@ class Trans_Data(object):
         self._key = u"{}{}{}".format(id_type, id_value, base_value)
         if self._id_type == "WID":
             self._is_WID = True
-            self._WID_key = "{}{}".format(id_type, base_value)
+            self._WID_key = u"{}{}".format(id_type, base_value)
         else:
             self._is_WID = False
             self._WID_key = None
@@ -34,7 +36,11 @@ class Trans_Data(object):
         """
         self._translated_value = translation.translated_value
         e = translation.element.find('{urn:com.workday/bsvc}Translated_Value')
-        self._element.append(e)
+        if e is not None:
+            self._element.append(e)
+        e = translation.element.find('{urn:com.workday/bsvc}Translated_Rich_Value')
+        if e is not None:
+            self._element.append(e)
         self._has_translation = True
         return
 
@@ -57,6 +63,14 @@ class Trans_Data(object):
     @property
     def translated_value(self): return self._translated_value
     @property
+    def rich_base_value(self): return self._rich_base_value
+    @property
+    def translated_rich_value(self): return self._translated_rich_value
+    @property
     def element(self): return self._element
     @property
     def has_translation(self): return self._has_translation
+
+    def __repr__(self):
+        return u"{}:{}:{}:{}:{}:{}".format(self.id_type, self.id_value, self.base_value, self.translated_value,
+                self.rich_base_value, self.translated_rich_value)

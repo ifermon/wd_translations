@@ -30,17 +30,21 @@ class Trans_Obj(object):
         return
 
     def get_inconsistent_translations(self):
+        pass
         """
             Check to see where we have identical base values translated differently
         """
+        print("Looking for inconsistent translations in {} for {}".format(self._parent.name, self._class_name))
         t_dict = {}
-        for to in self._trans_data_dict.values():
-            if not to.has_translation:
+        for td in self._trans_data_dict.values():
+            if not td.has_translation:
                 continue
-            if to.base_value in t_dict:
-                if t_dict[to.base_value] == to.translated_value
-
-
+            if td.base_value in t_dict:
+                if t_dict[td.base_value].translated_value != td.translated_value:
+                    print("[{}] has more than one translation".format(td))
+            else:
+                t_dict[td.base_value] = td
+        return
 
     def remove_untranslated_data(self):
         for d in self._trans_data_dict.values():

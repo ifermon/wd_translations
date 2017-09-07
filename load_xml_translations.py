@@ -18,6 +18,9 @@
         Add database support
         Implement REST integration 
         Lots more comments
+        Validations
+            Conflicting translations
+            Non-WID objects / data with not existing in source but not dest
 
 """
 from __init__ import *
@@ -29,14 +32,26 @@ import argparse
 from lxml import etree
 
 def parse_command_line():
-    parser = argparse.ArgumentParser(description="Takes translation files from one tenant and puts the values into the file from another tenant")
-    parser.add_argument("source_file", metavar="<Source file>", help="This is the source file - the file that has the translated values")
-    parser.add_argument("dest_file", metavar="<Destination file>", help="This is the destination file - the file that receives the translated values")
+    parser = argparse.ArgumentParser(description=("Takes translation files from one tenant and"
+            " puts the values into the file from another tenant"))
+    parser.add_argument("source_file", metavar="<Source file>", help=("This is the source file"
+            "- the file that has the translated values"))
+    parser.add_argument("dest_file", metavar="<Destination file>", help=("This is the "
+            "destination file - the file that receives the translated values"))
     #parser.add_argument("-m", "--mode", default="XML", help="Defines the type of input (xml,db, etc)")
-    parser.add_argument("-destination_name", help="Name for the destination tenant. Optional. If not provided the filename will be used.")
-    parser.add_argument("-source_name", help="Name for the source tenant. Optional. If not provided the filename will be used.")
-    parser.add_argument("-output_file_name", default="out.xml", help="Name for output file. If not provided it will be out.xml")
-    parser.add_argument("-class_name", action="append", default=[], help="Generate files that contain only those class names. Generates files and quits")
+    parser.add_argument("-destination_name", help=("Name for the destination tenant."
+            "Optional. If not provided the filename will be used."))
+    parser.add_argument("-source_name", help=("Name for the source tenant. Optional."
+            "If not provided the filename will be used."))
+    parser.add_argument("-output_file_name", default="out.xml", help=("Name for "
+            "output file. If not provided it will be out.xml"))
+    parser.add_argument("-class_name", action="append", default=[], help=("Generate files "
+            "that contain only those class names. Generates files and quits"))
+    parser.add_argument("-all_lines", default=False, action="store_true", help=("Default behavior "
+            "is to remove all lines from destination file that do not contain translatable values, "
+            "use this flag if you want all lines included in the destination file."))
+    parser.add_argument("-v", "--validate", default=False, action="store_true", help=(
+            "Perform validations against files"))
     return parser.parse_args()
 
 """
@@ -73,13 +88,25 @@ def load_xml_data_into_tenant(file_name, tenant_name):
             ir = trans_data_xml.find('{urn:com.workday/bsvc}Instance_Reference')
             id_type = ir[0].attrib['{urn:com.workday/bsvc}type']
             id_value = ir[0].text
-            base_value = trans_data_xml.find('{urn:com.workday/bsvc}Base_Value').text
+            try:
+                base_value = trans_data_xml.find('{urn:com.workday/bsvc}Base_Value').text
+            except AttributeError:
+                base_value = None
             try:
                 translated_value = trans_data_xml.find('{urn:com.workday/bsvc}Translated_Value').text
             except AttributeError as e:
                 translated_value = None
+            try:
+                rich_base_value = trans_data_xml.find('{urn:com.workday/bsvc}Rich_Base_Value').text
+            except AttributeError:
+                rich_base_value = None
+            try:
+                translated_rich_value = trans_data_xml.find('{urn:com.workday/bsvc}Translated_Value').text
+            except AttributeError as e:
+                translated_rich_value = None
             #print(u"type {} val {} base {} trans {}".format(id_type, id_value, base_value, translated_value))
-            trans_data = Trans_Data(id_type, id_value, base_value, translated_value, trans_data_xml)
+            trans_data = Trans_Data(id_type, id_value, base_value, translated_value, rich_base_value, 
+                    translated_rich_value, trans_data_xml)
             trans_obj.put_trans_data(trans_data)
 
         tenant.put_trans_obj(trans_obj)
@@ -103,6 +130,8 @@ if __name__ == "__main__":
     source_tenant = load_xml_data_into_tenant(args.source_file, args.source_name)
     dest_tenant = load_xml_data_into_tenant(args.dest_file, args.destination_name)
 
+    # If this option as specified, the in-memory data will only have the class names
+    # that were requested.
     if args.class_name:
         source_tenant.tree.write("{}.FILTERED.xml".format(args.source_name))
         dest_tenant.tree.write("{}.FILTERED.xml".format(args.destination_name))
@@ -121,5 +150,11 @@ if __name__ == "__main__":
     for translated_item in source_tenant.get_translated_items():
         dest_tenant.add_translation(translated_item)
 
-    dest_tenant.remove_empty_translations()
+    # Perform validations is requested
+    if args.validate:
+        source_tenant.validate()
+
+    # Remove lines with no translated value unless requested to leave them in the file
+    if not args.all_lines:
+        dest_tenant.remove_empty_translations()
     dest_tenant.tree.write(args.output_file_name)

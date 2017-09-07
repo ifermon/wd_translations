@@ -37,7 +37,11 @@ class Tenant(object):
         try:
             self._trans_obj_dict[translation.parent_key].update_translation(translation)
         except KeyError:
-            print("Failed to find matching entry for {}".format(translation))
+            print(u"Failed to find matching entry for {}".format(translation))
+
+    def validate(self):
+        for to in self._trans_obj_dict.values():
+            to.get_inconsistent_translations()
         
     @property
     def name(self):
