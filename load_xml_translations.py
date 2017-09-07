@@ -127,7 +127,9 @@ if __name__ == "__main__":
         print("Source file name and destination file name cannot be the same")
         sys.exit()
 
+    print("Loading {}".format(args.source_name))
     source_tenant = load_xml_data_into_tenant(args.source_file, args.source_name)
+    print("Loading {}".format(args.destination_name))
     dest_tenant = load_xml_data_into_tenant(args.dest_file, args.destination_name)
 
     # If this option as specified, the in-memory data will only have the class names
@@ -145,16 +147,29 @@ if __name__ == "__main__":
         Next, remove non-translated items in destination
         Finally, print out both files
     """
+    # We do this for performance reasons, ignore lines that don't have values we care about
     source_tenant.remove_empty_translations()
-
-    for translated_item in source_tenant.get_translated_items():
-        dest_tenant.add_translation(translated_item)
 
     # Perform validations is requested
     if args.validate:
+        print("Validating")
         source_tenant.validate()
+        for t in source_tenant.get_translated_items():
+            try:
+                dest_tenant.add_translation(t)
+            except KeyError:
+                print(u"Failed to find matching entry for {}".format(t))
+
+    print("Migrating translations")
+    for translated_item in source_tenant.get_translated_items():
+        try:
+            dest_tenant.add_translation(translated_item)
+        except KeyError:
+            pass
 
     # Remove lines with no translated value unless requested to leave them in the file
     if not args.all_lines:
+        print("Optimizing  output file")
         dest_tenant.remove_empty_translations()
+    print("Writing output file")
     dest_tenant.tree.write(args.output_file_name)

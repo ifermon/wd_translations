@@ -34,21 +34,17 @@ class Tenant(object):
         return ret_list
 
     def add_translation(self, translation):
-        try:
-            self._trans_obj_dict[translation.parent_key].update_translation(translation)
-        except KeyError:
-            print(u"Failed to find matching entry for {}".format(translation))
+        self._trans_obj_dict[translation.parent_key].update_translation(translation)
+        return
 
     def validate(self):
         for to in self._trans_obj_dict.values():
             to.get_inconsistent_translations()
+        return
         
     @property
-    def name(self):
-        return self._name
+    def name(self): return self._name
     @property
-    def source_type(self):
-        return self._source_type
+    def source_type(self): return self._source_type
     @property
-    def tree(self):
-        return self._tree
+    def tree(self): return self._tree
