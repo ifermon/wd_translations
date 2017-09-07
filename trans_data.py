@@ -42,6 +42,7 @@ class Trans_Data(object):
         if e is not None:
             self._element.append(e)
         self._has_translation = True
+        self.parent.has_translations = True
         return
 
     @property

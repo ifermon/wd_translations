@@ -73,26 +73,22 @@ class Trans_Obj(object):
         
 
     @property
-    def key(self):
-        return self._key
+    def key(self): return self._key
     @property
-    def parent(self):
-        return self._parent
+    def parent(self): return self._parent
     @property
-    def language(self):
-        return self._language
+    def language(self): return self._language
     @property
-    def class_name(self):
-        return self._class_name
+    def class_name(self): return self._class_name
     @property
-    def name(self):
-        return self._name
+    def name(self): return self._name
     @property
-    def namespace(self):
-        return self._namespace
+    def namespace(self): return self._namespace
     @property
-    def element(self):
-        return self._element
+    def element(self): return self._element
     @property
-    def has_translations(self):
-        return self._has_translations
+    def has_translations(self): return self._has_translations
+    @has_translations.setter
+    def has_translations(self, value):
+        self._has_translations = value
+        return

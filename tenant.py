@@ -10,6 +10,7 @@ class Tenant(object):
         self._name = name
         self._source_type = source_type
         self._tree = tree
+        self._update_hook = None
         self._file_name = file_name
         self._element = tree.getroot()
         self._trans_obj_dict = {}
@@ -39,6 +40,8 @@ class Tenant(object):
         destination_item = self._trans_obj_dict[translation.parent_key]
         if not self._lock_translated_values or not destination_item.has_translation:
             destination_item.update_translation(translation)
+            if self._update_hook:
+                self._update_hook(self, translation)
         return
 
     def validate(self):
@@ -50,6 +53,14 @@ class Tenant(object):
         self._lock_translated_values = True
         return
         
+    def register_updates(self, f_ptr):
+        self._update_hook = f_ptr
+        return
+
+    def unregister_updates(self):
+        self._update_hook = None
+        return
+
     @property
     def name(self): return self._name
     @property

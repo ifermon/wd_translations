@@ -59,6 +59,8 @@ def parse_command_line():
             "source and destination xml files in human readable format (with spacing). *DO NOT* use "
             "these files as a source file for program. The spaces will break things. File will be "
             "the original file name with PRETTY as suffix before the .xml"))
+    parser.add_argument("-examples", type=int, help=("Requires a number. Ouputs the first n examples "
+            "that have changed in destination file so you can check after load"))
     return parser.parse_args()
 
 """
@@ -120,6 +122,15 @@ def load_xml_data_into_tenant(file_name, tenant_name):
 
     return tenant
 
+def print_trans_data(tenant, trans_data):
+    """
+        Used to print out examples to the terminal that can be used for load validation
+    """
+    print(u"Example: {}".format(trans_data))
+    args.examples -= 1
+    if args.examples <= 0:
+        tenant.unregister_updates()
+    return
 
 if __name__ == "__main__":
     
@@ -148,7 +159,7 @@ if __name__ == "__main__":
 
     if args.pretty:
         for t in [source_tenant, dest_tenant]:
-            name = "{}.PRETTY.{}".format(os.path.splitext(t.file_name)[0],os.path.splitext(t.file_name)[1])
+            name = "{}.PRETTY{}".format(os.path.splitext(t.file_name)[0],os.path.splitext(t.file_name)[1])
             print("Writing PRETTY version with filename: {}".format(name))
             with open(name, "w") as f:
                 f.write(p(t.tree.getroot()))
@@ -186,6 +197,8 @@ if __name__ == "__main__":
                 print(u"Failed to find matching entry for {}".format(t))
 
     print("Migrating translations")
+    if args.examples:
+        dest_tenant.register_updates(print_trans_data)
     for translated_item in source_tenant.get_translated_items():
         try:
             dest_tenant.add_translation(translated_item)
@@ -200,6 +213,12 @@ if __name__ == "__main__":
     fname = args.output_file_name
     if not fname:
         fname = "{}-WITH_TRANSLATIONS.xml".format(os.path.splitext(args.dest_file)[0])
+
     with open(fname, "w") as f:
         print("Writing output file: {}".format(fname))
         f.write(etree.tostring(dest_tenant.tree.getroot()))
+    if args.pretty:
+        pretty_fname = "{}.PRETTY{}".format(os.path.splitext(fname)[0],os.path.splitext(fname)[1])
+        with open(pretty_fname, "w") as f:
+            print("Writing pretty output file: {}".format(pretty_fname))
+            f.write(etree.tostring(dest_tenant.tree.getroot(), pretty_print=True))
