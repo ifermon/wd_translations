@@ -12,6 +12,7 @@ class Tenant(object):
         self._tree = tree
         self._element = tree.getroot()
         self._trans_obj_dict = {}
+        self._lock_translated_values = False
         return
 
     def put_trans_obj(self, trans_obj):
@@ -34,12 +35,18 @@ class Tenant(object):
         return ret_list
 
     def add_translation(self, translation):
-        self._trans_obj_dict[translation.parent_key].update_translation(translation)
+        destination_item = self._trans_obj_dict[translation.parent_key]
+        if not self._lock_translated_values or not destination_item.has_translation:
+            destination_item.update_translation(translation)
         return
 
     def validate(self):
         for to in self._trans_obj_dict.values():
             to.get_inconsistent_translations()
+        return
+
+    def lock_translated_values(self):
+        self._lock_translated_values = True
         return
         
     @property

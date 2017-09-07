@@ -52,6 +52,8 @@ def parse_command_line():
             "use this flag if you want all lines included in the destination file."))
     parser.add_argument("-v", "--validate", default=False, action="store_true", help=(
             "Perform validations against files"))
+    parser.add_argument("-respect", default=False, action="store_true", help=("Respects translated "
+            "values in the destination tenant. Will not overwrite them"))
     return parser.parse_args()
 
 """
@@ -132,6 +134,10 @@ if __name__ == "__main__":
     print("Loading {}".format(args.destination_name))
     dest_tenant = load_xml_data_into_tenant(args.dest_file, args.destination_name)
 
+    if args.respect:
+        print("Respecting existing translated values in destination tenant")
+        dest_tenant.lock_translations()
+
     # If this option as specified, the in-memory data will only have the class names
     # that were requested.
     if args.class_name:
@@ -171,5 +177,5 @@ if __name__ == "__main__":
     if not args.all_lines:
         print("Optimizing  output file")
         dest_tenant.remove_empty_translations()
-    print("Writing output file")
+    print("Writing output file: {}".format(args.output_file_name))
     dest_tenant.tree.write(args.output_file_name)
