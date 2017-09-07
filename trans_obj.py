@@ -15,6 +15,7 @@ class Trans_Obj(object):
         self._trans_data_dict = {}
         self._key = "{}{}{}{}".format(language, class_name, name, namespace)
         self._WID_dict = defaultdict(list)
+        self._error_strings = defaultdict(list)
         return
 
     def add_parent(self, parent):
@@ -40,7 +41,7 @@ class Trans_Obj(object):
                 continue
             if td.base_value in t_dict:
                 if t_dict[td.base_value].translated_value != td.translated_value:
-                    print("Inconsistent translation: [{}:{}:{}] has more than one translation".format(
+                    self._error_strings[INCONSISTENT_TRANSLATION].append("[{}:{}:{}] has more than one translation".format(
                             self._parent.name, self._class_name, td))
             else:
                 t_dict[td.base_value] = td
@@ -70,6 +71,9 @@ class Trans_Obj(object):
         else:
             self._trans_data_dict[translation.key].add_translation(translation)
         return
+
+    def get_error_strings(self):
+        return self._error_strings
         
 
     @property
@@ -92,3 +96,9 @@ class Trans_Obj(object):
     def has_translations(self, value):
         self._has_translations = value
         return
+    @property
+    def has_errors(self):
+        return len(self._error_strings) != 0
+
+    def __repr__(self):
+        return "{}:{}:{}:{}".format(self._parent, self._language, self._class_name, self._name)

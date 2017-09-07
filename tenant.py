@@ -17,6 +17,19 @@ class Tenant(object):
         self._lock_translated_values = False
         return
 
+    def get_errors(self):
+        ret_str = ""
+        for to in self._trans_obj_dict.values():
+            if not to.has_errors:
+                continue
+            ret_str += "{} has the following errors:\n".format(to)
+            err_str = to.get_error_strings
+            for err_type in err_str.keys():
+                ret_str += "{}:\n".format(err_type)
+                for err_msg in err_str[err_type]:
+                    ret_str += "\terr_msg\n"
+        return ret_str
+
     def put_trans_obj(self, trans_obj):
         self._trans_obj_dict[trans_obj.key] = trans_obj
         trans_obj.add_parent(self)
@@ -69,3 +82,4 @@ class Tenant(object):
     def tree(self): return self._tree
     @property
     def file_name(self): return self._file_name
+    def __repr__(self): return self._name

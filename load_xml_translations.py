@@ -190,6 +190,7 @@ if __name__ == "__main__":
     if args.validate:
         print("Validating")
         source_tenant.validate()
+        print("{}".format(source_tenant.get_errors()))
         for t in source_tenant.get_translated_items():
             try:
                 dest_tenant.add_translation(t)
