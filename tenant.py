@@ -6,10 +6,11 @@ from __init__ import *
 
 class Tenant(object):
 
-    def __init__(self, name, tree, source_type=XML):
+    def __init__(self, name, tree, file_name, source_type=XML):
         self._name = name
         self._source_type = source_type
         self._tree = tree
+        self._file_name = file_name
         self._element = tree.getroot()
         self._trans_obj_dict = {}
         self._lock_translated_values = False
@@ -55,3 +56,5 @@ class Tenant(object):
     def source_type(self): return self._source_type
     @property
     def tree(self): return self._tree
+    @property
+    def file_name(self): return self._file_name

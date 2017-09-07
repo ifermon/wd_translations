@@ -29,6 +29,7 @@ from trans_obj import Trans_Obj
 from trans_data import Trans_Data
 import sys
 import argparse
+import os.path
 from lxml import etree
 
 def parse_command_line():
@@ -43,8 +44,8 @@ def parse_command_line():
             "Optional. If not provided the filename will be used."))
     parser.add_argument("-source_name", help=("Name for the source tenant. Optional."
             "If not provided the filename will be used."))
-    parser.add_argument("-output_file_name", default="out.xml", help=("Name for "
-            "output file. If not provided it will be out.xml"))
+    parser.add_argument("-output_file_name", help=("Name for "
+            "output file. If not provided it will be <destination file>-WITH_TRANSLATIONS.xml"))
     parser.add_argument("-class_name", action="append", default=[], help=("Generate files "
             "that contain only those class names. Generates files and quits"))
     parser.add_argument("-all_lines", default=False, action="store_true", help=("Default behavior "
@@ -54,6 +55,10 @@ def parse_command_line():
             "Perform validations against files"))
     parser.add_argument("-respect", default=False, action="store_true", help=("Respects translated "
             "values in the destination tenant. Will not overwrite them"))
+    parser.add_argument("-pretty", default=False, action="store_true", help=("Generates copies of "
+            "source and destination xml files in human readable format (with spacing). *DO NOT* use "
+            "these files as a source file for program. The spaces will break things. File will be "
+            "the original file name with PRETTY as suffix before the .xml"))
     return parser.parse_args()
 
 """
@@ -70,7 +75,7 @@ def load_xml_data_into_tenant(file_name, tenant_name):
     """
     tree = etree.parse(file_name)
     root = tree.getroot()
-    tenant = Tenant(tenant_name, tree)
+    tenant = Tenant(tenant_name, tree, file_name)
 
     for trans_obj_xml in root.iterchildren():
         # You should be iterating through the Translatable_Tenant_Data_Data (name from iLoad)
@@ -120,6 +125,13 @@ if __name__ == "__main__":
     
     args = parse_command_line()
 
+    # Confirm that files exist:
+    if not (os.path.exists(args.source_file) and os.path.exists(args.dest_file)):
+        print("Error - file does not exist\n{} = {}\n{} = {}".format(
+                args.source_file, os.path.exists(args.source_file),
+                args.dest_file, os.path.exists(args.dest_file)))
+        sys.exit(1)
+
     if not args.destination_name:
         args.destination_name = args.dest_file
     if not args.source_name:
@@ -133,6 +145,13 @@ if __name__ == "__main__":
     source_tenant = load_xml_data_into_tenant(args.source_file, args.source_name)
     print("Loading {}".format(args.destination_name))
     dest_tenant = load_xml_data_into_tenant(args.dest_file, args.destination_name)
+
+    if args.pretty:
+        for t in [source_tenant, dest_tenant]:
+            name = "{}.PRETTY.{}".format(os.path.splitext(t.file_name)[0],os.path.splitext(t.file_name)[1])
+            print("Writing PRETTY version with filename: {}".format(name))
+            with open(name, "w") as f:
+                f.write(p(t.tree.getroot()))
 
     if args.respect:
         print("Respecting existing translated values in destination tenant")
@@ -177,5 +196,10 @@ if __name__ == "__main__":
     if not args.all_lines:
         print("Optimizing  output file")
         dest_tenant.remove_empty_translations()
-    print("Writing output file: {}".format(args.output_file_name))
-    dest_tenant.tree.write(args.output_file_name)
+    # Writing output file
+    fname = args.output_file_name
+    if not fname:
+        fname = "{}-WITH_TRANSLATIONS.xml".format(os.path.splitext(args.dest_file)[0])
+    with open(fname, "w") as f:
+        print("Writing output file: {}".format(fname))
+        f.write(etree.tostring(dest_tenant.tree.getroot()))
