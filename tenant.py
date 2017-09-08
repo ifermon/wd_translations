@@ -36,11 +36,12 @@ class Tenant(object):
         return
 
     def remove_empty_translations(self):
-        for to in self._trans_obj_dict.values():
+        for key, to in self._trans_obj_dict.items():
             if to.has_translations:
                 to.remove_untranslated_data()
             else:
                 self._element.remove(to.element)
+                del self._trans_obj_dict[key]
         return
 
     def get_translated_items(self):
@@ -50,11 +51,22 @@ class Tenant(object):
         return ret_list
 
     def add_translation(self, translation):
-        destination_item = self._trans_obj_dict[translation.parent_key]
-        if not self._lock_translated_values or not destination_item.has_translation:
-            destination_item.update_translation(translation)
-            if self._update_hook:
-                self._update_hook(self, translation)
+        """
+            This is called to add a translation, not during the "read-out" of the xml file,
+            but during the moving of translations from one file to another
+
+            This throws a KeyError if there is no matching item. Example: there is a ref id
+            in the source tenant file that does not exist in the destination tenant file.
+
+            The exception is passed upwards
+            
+            :param translation: this is a Trans_Data object that has a Translated or Rich Translated Value 
+            :return: 
+        """
+        destination_trans_obj = self._trans_obj_dict[translation.parent_key]
+        destination_trans_obj.update_translation(translation)
+        #if self._update_hook:
+        #    self._update_hook(self, translation)
         return
 
     def validate(self):
@@ -64,6 +76,8 @@ class Tenant(object):
 
     def lock_translated_values(self):
         self._lock_translated_values = True
+        for to in self._trans_obj_dict.values():
+            to.lock_translated_values()
         return
         
     def register_updates(self, f_ptr):

@@ -16,6 +16,7 @@ class Trans_Obj(object):
         self._key = "{}{}{}{}".format(language, class_name, name, namespace)
         self._WID_dict = defaultdict(list)
         self._error_strings = defaultdict(list)
+        self._lock_translated_values = False
         return
 
     def add_parent(self, parent):
@@ -48,9 +49,10 @@ class Trans_Obj(object):
         return
 
     def remove_untranslated_data(self):
-        for d in self._trans_data_dict.values():
+        for key, d in self._trans_data_dict.items():
             if not d.has_translation:
                 self._element.remove(d.element)
+                del self._trans_data_dict[key]
         return
 
     def get_translated_items(self):
@@ -74,6 +76,12 @@ class Trans_Obj(object):
 
     def get_error_strings(self):
         return self._error_strings
+
+    def lock_translated_values(self):
+        self._lock_translated_values = True
+        for td in self._trans_data_dict.values():
+            td.lock()
+        return
         
 
     @property

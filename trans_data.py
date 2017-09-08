@@ -2,16 +2,20 @@
 
 """
 
+import sys
+from lxml import etree
+def p(e): return etree.tostring(e, pretty_print=True)
 
 class Trans_Data(object):
 
-    def __init__(self, id_type, id_value, base_value, translated_value, rich_base_value, translated_rich_value, element=None):
+    def __init__(self, id_type, id_value, base_value=None, translated_value=None, rich_base_value=None, translated_rich_value=None, element=None):
         self._id_type = id_type
         self._id_value = id_value
         self._base_value = base_value
         self._translated_value = translated_value
         self._rich_base_value = rich_base_value
         self._translated_rich_value = translated_rich_value
+        self._locked = False
         if translated_value or translated_rich_value:
             self._has_translation = True
         else:
@@ -33,17 +37,39 @@ class Trans_Data(object):
     def add_translation(self, translation):
         """
             translation is a Trans_Data object
+            If I have an existing value, remove it first before adding the new one
         """
-        self._translated_value = translation.translated_value
-        e = translation.element.find('{urn:com.workday/bsvc}Translated_Value')
-        if e is not None:
-            self._element.append(e)
-        e = translation.element.find('{urn:com.workday/bsvc}Translated_Rich_Value')
-        if e is not None:
-            self._element.append(e)
-        self._has_translation = True
-        self.parent.has_translations = True
+        if not self.lock:
+            self.remove_translation()
+            self._translated_value = translation.translated_value
+            e = translation.element.find('{urn:com.workday/bsvc}Translated_Value')
+            if e is not None:
+                self._element.append(e)
+            e = translation.element.find('{urn:com.workday/bsvc}Translated_Rich_Value')
+            if e is not None:
+                self._element.append(e)
+            self._has_translation = True
+            self.parent.has_translations = True
         return
+
+    def remove_translation(self):
+        """
+            Removes an existing translation if exists but keeps object in place
+        :return:
+        """
+        if self._has_translation:
+            if self._translated_value:
+                find_str = '{urn:com.workday/bsvc}Translated_Value'
+            else:
+                find_str = '{urn:com.workday/bsvc}Translated_Rich_Value'
+            e = self._element.find(find_str)
+            self._element.remove(e)
+        return
+
+    def lock(self):
+        self._locked = True
+        return
+
 
     @property
     def WID_key(self): return self._WID_key
@@ -71,7 +97,11 @@ class Trans_Data(object):
     def element(self): return self._element
     @property
     def has_translation(self): return self._has_translation
+    @property
+    def is_locked(self): return self._locked
+
 
     def __repr__(self):
-        return u"{}:{}:{}:{}:{}:{}".format(self.id_type, self.id_value, self.base_value, self.translated_value,
-                self.rich_base_value, self.translated_rich_value)
+        return u"{}:{}:{}:{}:{}:{}:{}:{}".format(self.parent, self.id_type, self.id_value,
+                self.base_value, self.translated_value, self.rich_base_value, self.translated_rich_value,
+                self.has_translation)

@@ -18,9 +18,6 @@
         Add database support
         Implement REST integration 
         Lots more comments
-        Validations
-            Conflicting translations
-            Non-WID objects / data with not existing in source but not dest
 
 """
 from __init__ import *
@@ -31,36 +28,39 @@ import sys
 import argparse
 import os.path
 from lxml import etree
+import time
 
 def parse_command_line():
     parser = argparse.ArgumentParser(description=("Takes translation files from one tenant and"
             " puts the values into the file from another tenant"))
     parser.add_argument("source_file", metavar="<Source file>", help=("This is the source file"
-            "- the file that has the translated values"))
+            "- the file that has the translated values."))
     parser.add_argument("dest_file", metavar="<Destination file>", help=("This is the "
-            "destination file - the file that receives the translated values"))
+            "destination file - the file that receives the translated values."))
     #parser.add_argument("-m", "--mode", default="XML", help="Defines the type of input (xml,db, etc)")
     parser.add_argument("-destination_name", help=("Name for the destination tenant."
             "Optional. If not provided the filename will be used."))
     parser.add_argument("-source_name", help=("Name for the source tenant. Optional."
             "If not provided the filename will be used."))
     parser.add_argument("-output_file_name", help=("Name for "
-            "output file. If not provided it will be <destination file>-WITH_TRANSLATIONS.xml"))
+            "output file. If not provided it will be <destination file>-WITH_TRANSLATIONS.xml."))
     parser.add_argument("-class_name", action="append", default=[], help=("Generate files "
-            "that contain only those class names. Generates files and quits"))
+            "that contain only those class names. Generates files and quits."))
     parser.add_argument("-all_lines", default=False, action="store_true", help=("Default behavior "
             "is to remove all lines from destination file that do not contain translatable values, "
             "use this flag if you want all lines included in the destination file."))
     parser.add_argument("-v", "--validate", default=False, action="store_true", help=(
-            "Perform validations against files"))
+            "Perform validations against files. Current validations are to check for "
+            "inconsistent translations and to check for source reference ids that do not "
+            "exist in destination."))
     parser.add_argument("-respect", default=False, action="store_true", help=("Respects translated "
             "values in the destination tenant. Will not overwrite them"))
     parser.add_argument("-pretty", default=False, action="store_true", help=("Generates copies of "
             "source and destination xml files in human readable format (with spacing). *DO NOT* use "
-            "these files as a source file for program. The spaces will break things. File will be "
-            "the original file name with PRETTY as suffix before the .xml"))
+            "these files as a source file for Workday as the spacing will break things. File will be "
+            "the original file name with PRETTY as suffix before the .xml."))
     parser.add_argument("-examples", type=int, help=("Requires a number. Ouputs the first n examples "
-            "that have changed in destination file so you can check after load"))
+            "that have changed in destination file so you can check after load into Workday."))
     return parser.parse_args()
 
 """
@@ -68,10 +68,20 @@ def parse_command_line():
 """
 def p(e): return etree.tostring(e, pretty_print=True)
 def pr(e): return etree.tostring(e, pretty_print=False)
+def status(msg):
+    global start_time
+    global last_update_time
+
+    now = int(time.time())
+    time_elapsed = now - start_time
+    time_since_last_update = now - last_update_time
+    print(u"{} ({}/{})".format(msg, time_since_last_update, time_elapsed))
+    last_update_time = now
+    return
 
 def load_xml_data_into_tenant(file_name, tenant_name):
     """
-        In this context texant is the object Tenant, not the WD tenant
+        In this context tenant is the python object Tenant, not the WD tenant
         Almost all of the xml logic is here aside from adding a new 
         translated value
     """
@@ -110,7 +120,7 @@ def load_xml_data_into_tenant(file_name, tenant_name):
             except AttributeError:
                 rich_base_value = None
             try:
-                translated_rich_value = trans_data_xml.find('{urn:com.workday/bsvc}Translated_Value').text
+                translated_rich_value = trans_data_xml.find('{urn:com.workday/bsvc}Translated_Rich_Value').text
             except AttributeError as e:
                 translated_rich_value = None
             #print(u"type {} val {} base {} trans {}".format(id_type, id_value, base_value, translated_value))
@@ -126,7 +136,7 @@ def print_trans_data(tenant, trans_data):
     """
         Used to print out examples to the terminal that can be used for load validation
     """
-    print(u"Example: {}".format(trans_data))
+    status(u"Example: {}".format(trans_data))
     args.examples -= 1
     if args.examples <= 0:
         tenant.unregister_updates()
@@ -135,6 +145,8 @@ def print_trans_data(tenant, trans_data):
 if __name__ == "__main__":
     
     args = parse_command_line()
+    start_time = int(time.time())
+    last_update_time = start_time
 
     # Confirm that files exist:
     if not (os.path.exists(args.source_file) and os.path.exists(args.dest_file)):
@@ -152,20 +164,20 @@ if __name__ == "__main__":
         print("Source file name and destination file name cannot be the same")
         sys.exit()
 
-    print("Loading {}".format(args.source_name))
+    status("Loading {}".format(args.source_name))
     source_tenant = load_xml_data_into_tenant(args.source_file, args.source_name)
-    print("Loading {}".format(args.destination_name))
+    status("Loading {}".format(args.destination_name))
     dest_tenant = load_xml_data_into_tenant(args.dest_file, args.destination_name)
 
     if args.pretty:
         for t in [source_tenant, dest_tenant]:
             name = "{}.PRETTY{}".format(os.path.splitext(t.file_name)[0],os.path.splitext(t.file_name)[1])
-            print("Writing PRETTY version with filename: {}".format(name))
+            status("Writing PRETTY version with filename: {}".format(name))
             with open(name, "w") as f:
                 f.write(p(t.tree.getroot()))
 
     if args.respect:
-        print("Respecting existing translated values in destination tenant")
+        status("Respecting existing translated values in destination tenant")
         dest_tenant.lock_translations()
 
     # If this option as specified, the in-memory data will only have the class names
@@ -173,7 +185,7 @@ if __name__ == "__main__":
     if args.class_name:
         source_tenant.tree.write("{}.FILTERED.xml".format(args.source_name))
         dest_tenant.tree.write("{}.FILTERED.xml".format(args.destination_name))
-        print("Created filtered files and exited")
+        status("Created filtered files and exited")
         sys.exit()
 
     """ 
@@ -188,7 +200,7 @@ if __name__ == "__main__":
 
     # Perform validations is requested
     if args.validate:
-        print("Validating")
+        status("Validating")
         source_tenant.validate()
         print("{}".format(source_tenant.get_errors()))
         for t in source_tenant.get_translated_items():
@@ -197,7 +209,7 @@ if __name__ == "__main__":
             except KeyError:
                 print(u"Failed to find matching entry for {}".format(t))
 
-    print("Migrating translations")
+    status("Migrating translations")
     if args.examples:
         dest_tenant.register_updates(print_trans_data)
     for translated_item in source_tenant.get_translated_items():
@@ -208,7 +220,7 @@ if __name__ == "__main__":
 
     # Remove lines with no translated value unless requested to leave them in the file
     if not args.all_lines:
-        print("Optimizing  output file")
+        status("Optimizing  output file")
         dest_tenant.remove_empty_translations()
     # Writing output file
     fname = args.output_file_name
@@ -216,10 +228,10 @@ if __name__ == "__main__":
         fname = "{}-WITH_TRANSLATIONS.xml".format(os.path.splitext(args.dest_file)[0])
 
     with open(fname, "w") as f:
-        print("Writing output file: {}".format(fname))
+        status("Writing output file: {}".format(fname))
         f.write(etree.tostring(dest_tenant.tree.getroot()))
     if args.pretty:
         pretty_fname = "{}.PRETTY{}".format(os.path.splitext(fname)[0],os.path.splitext(fname)[1])
         with open(pretty_fname, "w") as f:
-            print("Writing pretty output file: {}".format(pretty_fname))
+            status("Writing pretty output file: {}".format(pretty_fname))
             f.write(etree.tostring(dest_tenant.tree.getroot(), pretty_print=True))
