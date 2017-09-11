@@ -81,6 +81,24 @@ def status(msg):
     last_update_time = now
     return
 
+def combine(flist, output_file_name):
+    filename = output_file_name
+    #Translatable_Tenant_Data_Data
+    # First we open the first file and use it as a base, then iterate through the rest
+
+    base_tree = etree.parse(flist[0])
+    base_root = base_tree.getroot()
+    for f in flist[1:]:
+        tree = etree.parse(f)
+        root = tree.getroot()
+        data = root.find('{urn:com.workday/bsvc}Translatable_Tenant_Data_Data')
+        base_root.append(data)
+    base_tree.write(filename)
+    name = "{}.PRETTY{}".format(os.path.splitext(filename)[0],os.path.splitext(filename)[1])
+    with open(name, "w") as f:
+        f.write(p(base_root))
+    return
+
 def load_xml_data_into_tenant(file_name, tenant_name):
     """
         In this context tenant is the python object Tenant, not the WD tenant
