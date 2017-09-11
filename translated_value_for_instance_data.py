@@ -25,6 +25,10 @@ class Translated_Value_for_Instance_Data(object):
         seq += 1
         if translated_value or translated_rich_value:
             self._has_translation = True
+            if translated_value:
+                self._translation = translated_value
+            else:
+                self._translation = translated_rich_value
         else:
             self._has_translation = False
         self._element = element
@@ -119,6 +123,8 @@ class Translated_Value_for_Instance_Data(object):
     def is_locked(self): return self._locked
     @property
     def seq(self): return self._seq
+    @property
+    def translation(self): return self._translation
 
 
     def __repr__(self):

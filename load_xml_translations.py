@@ -18,6 +18,8 @@
         Add database support
         Implement REST integration 
         Lots more comments
+        Logging - validation, error, info
+        Add timing count down
 
 """
 from __init__ import *
@@ -30,7 +32,7 @@ import os.path
 from lxml import etree
 import time
 
-def parse_command_line():
+def parse_command_line(cmd_args):
     parser = argparse.ArgumentParser(description=("Takes translation files from one tenant and"
             " puts the values into the file from another tenant"))
     parser.add_argument("source_file", metavar="<Source file>", help=("This is the source file"
@@ -61,7 +63,7 @@ def parse_command_line():
             "the original file name with PRETTY as suffix before the .xml."))
     parser.add_argument("-examples", type=int, help=("Requires a number. Ouputs the first n examples "
             "that have changed in destination file so you can check after load into Workday."))
-    return parser.parse_args()
+    return parser.parse_args(cmd_args)
 
 """
     Convenience functions
@@ -142,9 +144,11 @@ def print_trans_data(tenant, trans_data):
         tenant.unregister_updates()
     return
 
-if __name__ == "__main__":
-    
-    args = parse_command_line()
+
+def main(cmd_args):
+    global last_update_time, start_time, args
+
+    args = parse_command_line(cmd_args)
     start_time = int(time.time())
     last_update_time = start_time
 
@@ -244,3 +248,7 @@ if __name__ == "__main__":
         with open(pretty_fname, "w") as f:
             status("Writing pretty output file: {}".format(pretty_fname))
             f.write(etree.tostring(dest_tenant.tree.getroot(), pretty_print=True))
+    return
+
+if __name__ == "__main__":
+    main(sys.argv[1:])
