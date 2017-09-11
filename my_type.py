@@ -9,3 +9,4 @@ class Source_Type(Enum):
 
 class Error_Type(Enum):
     INCONSISTENT_TRANSLATION = 1
+    NO_MATCHING_WID_KEY = 2

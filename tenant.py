@@ -88,6 +88,27 @@ class Tenant(object):
         self._update_hook = None
         return
 
+    def get_all_items(self):
+        ret_list = []
+        for to in self._trans_obj_dict.values():
+            ret_list += to.get_all_items()
+        return ret_list
+
+    def get_stats(self):
+        num_trans_objects = len(self._trans_obj_dict)
+        num_trans_data = 0
+        num_WID_trans_data = 0
+        num_translations = 0
+        for td in self.get_all_items():
+            num_trans_data += 1
+            if td.is_WID:
+                num_WID_trans_data += 1
+            if td.has_translation:
+                num_translations += 1
+        return ("Name: {}\n\tNumber of classes: {}\n\tNumber of lines: {}"
+                "\n\tNumber of translations: {}\n\tNumber of WID lines: {}").format(
+                self.name, num_trans_objects, num_trans_data, num_translations, num_WID_trans_data)
+
     @property
     def name(self): return self._name
     @property

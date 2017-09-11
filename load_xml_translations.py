@@ -22,8 +22,8 @@
 """
 from __init__ import *
 from tenant import Tenant
-from trans_obj import Trans_Obj
-from trans_data import Trans_Data
+from translatable_tenant_data import Translatable_Tenant_Data
+from translated_value_for_instance_data import Translated_Value_for_Instance_Data
 import sys
 import argparse
 import os.path
@@ -101,7 +101,7 @@ def load_xml_data_into_tenant(file_name, tenant_name):
         namespace = ar.find('{urn:com.workday/bsvc}Namespace_URI').text
         #print("lang {} class_name {} name {} namespace {}".format(lang, class_name, name, namespace))
 
-        trans_obj = Trans_Obj(lang, class_name, name, namespace, trans_obj_xml)
+        trans_obj = Translatable_Tenant_Data(lang, class_name, name, namespace, trans_obj_xml)
 
         for trans_data_xml in trans_obj_xml.findall('{urn:com.workday/bsvc}Translated_Value_for_Instance_Data'):
             ir = trans_data_xml.find('{urn:com.workday/bsvc}Instance_Reference')
@@ -124,8 +124,8 @@ def load_xml_data_into_tenant(file_name, tenant_name):
             except AttributeError as e:
                 translated_rich_value = None
             #print(u"type {} val {} base {} trans {}".format(id_type, id_value, base_value, translated_value))
-            trans_data = Trans_Data(id_type, id_value, base_value, translated_value, rich_base_value, 
-                    translated_rich_value, trans_data_xml)
+            trans_data = Translated_Value_for_Instance_Data(id_type, id_value, base_value, translated_value, rich_base_value,
+                                                            translated_rich_value, trans_data_xml)
             trans_obj.put_trans_data(trans_data)
 
         tenant.put_trans_obj(trans_obj)
@@ -166,8 +166,10 @@ if __name__ == "__main__":
 
     status("Loading {}".format(args.source_name))
     source_tenant = load_xml_data_into_tenant(args.source_file, args.source_name)
+    print(source_tenant.get_stats())
     status("Loading {}".format(args.destination_name))
     dest_tenant = load_xml_data_into_tenant(args.dest_file, args.destination_name)
+    print(dest_tenant.get_stats())
 
     if args.pretty:
         for t in [source_tenant, dest_tenant]:
@@ -183,6 +185,7 @@ if __name__ == "__main__":
     # If this option as specified, the in-memory data will only have the class names
     # that were requested.
     if args.class_name:
+        stats("Filtering for class.")
         source_tenant.tree.write("{}.FILTERED.xml".format(args.source_name))
         dest_tenant.tree.write("{}.FILTERED.xml".format(args.destination_name))
         status("Created filtered files and exited")
@@ -196,7 +199,9 @@ if __name__ == "__main__":
         Finally, print out both files
     """
     # We do this for performance reasons, ignore lines that don't have values we care about
+    status("Optimizing source file.")
     source_tenant.remove_empty_translations()
+
 
     # Perform validations is requested
     if args.validate:
@@ -213,6 +218,10 @@ if __name__ == "__main__":
     if args.examples:
         dest_tenant.register_updates(print_trans_data)
     for translated_item in source_tenant.get_translated_items():
+        if translated_item.WID_key:
+            print(u"About to add translation:\n{}".format(translated_item))
+            if translated_item.seq == 248044:
+                print(u"{}".format(p(translated_item.element)))
         try:
             dest_tenant.add_translation(translated_item)
         except KeyError:

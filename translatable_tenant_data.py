@@ -1,9 +1,10 @@
+"""
+
+"""
 from collections import defaultdict
-"""
+from __init__ import *
 
-"""
-
-class Trans_Obj(object):
+class Translatable_Tenant_Data(object):
 
     def __init__(self, language, class_name, name, namespace, element=None):
         self._language = language
@@ -63,11 +64,20 @@ class Trans_Obj(object):
                     ret_list.append(td)
         return ret_list
 
+    def get_all_items(self):
+        ret_list = []
+        for td in self._tras_data_dict.values():
+            ret_list.append(td)
+        return ret_list
+
     def update_translation(self, translation):
         """
             Passes a Trans_Data object, compare to my objects
         """
         if translation.is_WID:
+            if not translation.WID_key in self._WID_dict:
+                self._error_strings[NO_MATCHING_WID_KEY].append("[{}:{}:{}] has no matching WID key.".format(
+                        self._parent.name, self._class_name, self.translation))
             for td in self._WID_dict[translation.WID_key]:
                 td.add_translation(translation)
         else:
