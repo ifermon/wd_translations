@@ -17,6 +17,16 @@ class Tenant(object):
         self._lock_translated_values = False
         return
 
+    def get_csv_string(self):
+        ret_str = ""
+        i = 1
+        if API_VERSION in ['28.2']:
+            for to in self._trans_obj_dict:
+                row = ",{},{},{}".format(i, 1, to.get_csv_string())
+                i += 1
+                ret_str += row
+        return ret_str
+
     def get_errors(self):
         ret_str = ""
         for to in self._trans_obj_dict.values():
@@ -35,7 +45,13 @@ class Tenant(object):
         trans_obj.add_parent(self)
         return
 
-    def remove_empty_translations(self):
+    def remove_untranslated_instances(self):
+        """
+            Removes all instances of translated_value_for_instance_data that do not have
+            any translations. Additionally, if there are entire translatable_tenant_data objects
+            that do not have translations then that will be removed as well.
+        :return:
+        """
         for key, to in self._trans_obj_dict.items():
             if to.has_translations:
                 to.remove_untranslated_data()
@@ -63,16 +79,21 @@ class Tenant(object):
             :param translation: this is a Trans_Data object that has a Translated or Rich Translated Value 
             :return: 
         """
+        # Will throw KeyError if it is not found (either object or instance)
         destination_trans_obj = self._trans_obj_dict[translation.parent_key]
         destination_trans_obj.update_translation(translation)
         #if self._update_hook:
         #    self._update_hook(self, translation)
         return
 
-    def validate(self):
+    def validate_self(self):
+        """
+            Perform validations within self (not tenant vs. tenant)
+        """
         for to in self._trans_obj_dict.values():
             to.get_inconsistent_translations()
         return
+
 
     def lock_translated_values(self):
         self._lock_translated_values = True
@@ -88,10 +109,10 @@ class Tenant(object):
         self._update_hook = None
         return
 
-    def get_all_items(self):
+    def get_all_translatable_items(self):
         ret_list = []
         for to in self._trans_obj_dict.values():
-            ret_list += to.get_all_items()
+            ret_list += to.get_all_translatable_items()
         return ret_list
 
     def get_stats(self):
@@ -99,7 +120,7 @@ class Tenant(object):
         num_trans_data = 0
         num_WID_trans_data = 0
         num_translations = 0
-        for td in self.get_all_items():
+        for td in self.get_all_translatable_items():
             num_trans_data += 1
             if td.is_WID:
                 num_WID_trans_data += 1

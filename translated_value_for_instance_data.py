@@ -2,6 +2,7 @@
 
 """
 
+from __init__ import *
 import sys
 from lxml import etree
 from copy import deepcopy
@@ -11,10 +12,12 @@ seq = 0
 
 class Translated_Value_for_Instance_Data(object):
 
-    def __init__(self, id_type, id_value, base_value=None, translated_value=None, rich_base_value=None, translated_rich_value=None, element=None):
+    def __init__(self, id_type, id_value, id_parent_type, id_parent_id, base_value=None, translated_value=None, rich_base_value=None, translated_rich_value=None, element=None):
         global seq
         self._id_type = id_type
         self._id_value = id_value
+        self._id_parent_type = id_parent_type
+        self._id_parent_id = id_parent_id
         self._base_value = base_value
         self._translated_value = translated_value
         self._rich_base_value = rich_base_value
@@ -40,6 +43,13 @@ class Translated_Value_for_Instance_Data(object):
             self._is_WID = False
             self._WID_key = None
         return
+
+    def get_csv_string(self):
+        if API_VERSION in ['28.2']:
+            ret_str = "{},,{},{},{},{},{},{},{}".format(self._id_type, self._id_value, self._id_parent_type,
+                self._id_parent_id, self._base_value, self._translated_value,
+                self._rich_base_value, self._translated_rich_value)
+        return ret_str
 
     def add_parent(self, parent):
         self._parent = parent
@@ -76,15 +86,17 @@ class Translated_Value_for_Instance_Data(object):
                 else:
                     find_str = '{urn:com.workday/bsvc}Translated_Rich_Value'
                 e = self._element.find(find_str)
-                print("self._seq {}".format(self._seq))
-                print("Removing {}".format(p(e)))
+                debug("self._seq {}".format(self._seq))
+                debug("Removing {}".format(p(e)))
                 self._element.remove(e)
-        except:
-            print("Error removing my translated value")
-            print("_has_translation: {}".format(self._has_translation))
-            print(u"Trans value = {}".format(self._translated_value))
-            print(u"Here I am {}".format(self))
-            print(u"And my element tree: {}".format(p(self.element)))
+                self._has_translation = False
+        except Exception as e:
+            error("Error removing my translated value")
+            error("_has_translation: {}".format(self._has_translation))
+            error(u"Trans value = {}".format(self._translated_value))
+            error(u"Here I am {}".format(self))
+            error(u"And my element tree: {}".format(p(self.element)))
+            error(e)
             sys.exit()
         return
 

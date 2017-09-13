@@ -23,6 +23,19 @@ class Translatable_Tenant_Data(object):
     def add_parent(self, parent):
         self._parent = parent
 
+    def get_csv_string(self):
+        ret_str = ""
+        if API_VERSION in ['28.2']:
+            header_str = "{},,{},{},{},{}".format("User_Language_ID", self._language, self._class_name, self._name,
+                    self._namespace)
+            row = header_str
+            for td in self._trans_data_dict.values():
+                row = "{},{}".format(row, td.get_csv_string())
+                ret_str += row
+                row = ",,,,,"
+        return ret_str
+
+
     def put_trans_data(self, trans_data):
         self._trans_data_dict[trans_data.key] = trans_data
         trans_data.add_parent(self)
@@ -64,7 +77,7 @@ class Translatable_Tenant_Data(object):
                     ret_list.append(td)
         return ret_list
 
-    def get_all_items(self):
+    def get_all_translatable_items(self):
         ret_list = []
         for td in self._trans_data_dict.values():
             ret_list.append(td)
@@ -73,6 +86,7 @@ class Translatable_Tenant_Data(object):
     def update_translation(self, translation):
         """
             Passes a Trans_Data object, compare to my objects
+            Should throw a KeyError if nothing found
         """
         if translation.is_WID:
             if not translation.WID_key in self._WID_dict:

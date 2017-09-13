@@ -30,39 +30,55 @@ import sys
 import argparse
 import os.path
 from lxml import etree
-import time
 
 def parse_command_line(cmd_args):
     parser = argparse.ArgumentParser(description=("Takes translation files from one tenant and"
             " puts the values into the file from another tenant"))
-    parser.add_argument("source_file", metavar="<Source file>", help=("This is the source file"
+
+    sub = parser.add_subparsers()
+
+    # This is the normal mode, take in xml files from two tenants and move the translations
+    process = sub.add_parser("process")
+    process.add_argument("source_file", metavar="<Source file>", help=("This is the source file"
             "- the file that has the translated values."))
-    parser.add_argument("dest_file", metavar="<Destination file>", help=("This is the "
+    process.add_argument("dest_file", metavar="<Destination file>", help=("This is the "
             "destination file - the file that receives the translated values."))
-    #parser.add_argument("-m", "--mode", default="XML", help="Defines the type of input (xml,db, etc)")
-    parser.add_argument("-destination_name", help=("Name for the destination tenant."
+    process.add_argument("-destination_name", help=("Name for the destination tenant."
             "Optional. If not provided the filename will be used."))
-    parser.add_argument("-source_name", help=("Name for the source tenant. Optional."
+    process.add_argument("-source_name", help=("Name for the source tenant. Optional."
             "If not provided the filename will be used."))
-    parser.add_argument("-output_file_name", help=("Name for "
+    process.add_argument("-output_file_name", help=("Name for "
             "output file. If not provided it will be <destination file>-WITH_TRANSLATIONS.xml."))
-    parser.add_argument("-class_name", action="append", default=[], help=("Generate files "
+    process.add_argument("-class_name", action="append", default=[], help=("Generate files "
             "that contain only those class names. Generates files and quits."))
-    parser.add_argument("-all_lines", default=False, action="store_true", help=("Default behavior "
+    process.add_argument("-all_lines", default=False, action="store_true", help=("Default behavior "
             "is to remove all lines from destination file that do not contain translatable values, "
             "use this flag if you want all lines included in the destination file."))
-    parser.add_argument("-v", "--validate", default=False, action="store_true", help=(
+    process.add_argument("-v", "--validate_self", default=False, action="store_true", help=(
             "Perform validations against files. Current validations are to check for "
             "inconsistent translations and to check for source reference ids that do not "
             "exist in destination."))
-    parser.add_argument("-respect", default=False, action="store_true", help=("Respects translated "
+    process.add_argument("-respect", default=False, action="store_true", help=("Respects translated "
             "values in the destination tenant. Will not overwrite them"))
-    parser.add_argument("-pretty", default=False, action="store_true", help=("Generates copies of "
+    process.add_argument("-pretty", default=False, action="store_true", help=("Generates copies of "
             "source and destination xml files in human readable format (with spacing). *DO NOT* use "
             "these files as a source file for Workday as the spacing will break things. File will be "
             "the original file name with PRETTY as suffix before the .xml."))
-    parser.add_argument("-examples", type=int, help=("Requires a number. Ouputs the first n examples "
+    process.add_argument("-examples", type=int, help=("Requires a number. Ouputs the first n examples "
             "that have changed in destination file so you can check after load into Workday."))
+
+    # Utility mode for combining multiple xml files into a single file
+    combine = sub.add_parser("combine")
+    combine.add_argument("Files to combine", nargs="+", help=("Provide a list of xml files to be combined into a "
+            "single xml file. Generally used when combining generated files from different languages"))
+    combine.set_defaults(func=combine)
+
+    # Utility mode for creating iLoad friendly csv files from xml files
+    csv = sub.add_parser("csv")
+    csv.add_argument("Files to convert", nargs="+", help=("File(s) to convert to csv. "
+            "Will retain the same name. Input file is expected to be WD xml format. Output file "
+            "will be suitable for copy/paste directly into an iLoad file."))
+
     return parser.parse_args(cmd_args)
 
 """
@@ -77,11 +93,18 @@ def status(msg):
     now = int(time.time())
     time_elapsed = now - start_time
     time_since_last_update = now - last_update_time
-    print(u"{} ({}/{})".format(msg, time_since_last_update, time_elapsed))
+    info(u"{} ({})".format(msg, time_elapsed))
     last_update_time = now
     return
 
 def combine(flist, output_file_name):
+    """
+        Combines multiple xml files into one. It is designed to combine mulitple language files into a single
+        file for loading.
+    :param flist:
+    :param output_file_name:
+    :return:
+    """
     filename = output_file_name
     #Translatable_Tenant_Data_Data
     # First we open the first file and use it as a base, then iterate through the rest
@@ -97,6 +120,18 @@ def combine(flist, output_file_name):
     name = "{}.PRETTY{}".format(os.path.splitext(filename)[0],os.path.splitext(filename)[1])
     with open(name, "w") as f:
         f.write(p(base_root))
+    return
+
+def generate_csv_file(file_name, tenant):
+    """
+        Given a tenant, generate a csv file with named file_name
+        csv file is designed to be copied directly into an iLoad file
+    :param file_name:
+    :param tenant:
+    :return:
+    """
+    with open(file_name, "w") as f:
+        f.write(tenant.get_csv_string())
     return
 
 def load_xml_data_into_tenant(file_name, tenant_name):
@@ -126,6 +161,12 @@ def load_xml_data_into_tenant(file_name, tenant_name):
         for trans_data_xml in trans_obj_xml.findall('{urn:com.workday/bsvc}Translated_Value_for_Instance_Data'):
             ir = trans_data_xml.find('{urn:com.workday/bsvc}Instance_Reference')
             id_type = ir[0].attrib['{urn:com.workday/bsvc}type']
+            try: # Either both exist or neither exists
+                id_parent_type = ir[0].attrib['{urn:com.workday/bsvc}parent_type']
+                id_parent_id = ir[0].attrib['{urn:com.workday/bsvc}parent_id']
+            except KeyError:
+                id_parent_type = None
+                id_parent_id = None
             id_value = ir[0].text
             try:
                 base_value = trans_data_xml.find('{urn:com.workday/bsvc}Base_Value').text
@@ -143,9 +184,8 @@ def load_xml_data_into_tenant(file_name, tenant_name):
                 translated_rich_value = trans_data_xml.find('{urn:com.workday/bsvc}Translated_Rich_Value').text
             except AttributeError as e:
                 translated_rich_value = None
-            #print(u"type {} val {} base {} trans {}".format(id_type, id_value, base_value, translated_value))
-            trans_data = Translated_Value_for_Instance_Data(id_type, id_value, base_value, translated_value, rich_base_value,
-                                                            translated_rich_value, trans_data_xml)
+            trans_data = Translated_Value_for_Instance_Data(id_type, id_value, id_parent_type, id_parent_id, base_value,
+                    translated_value, rich_base_value, translated_rich_value, trans_data_xml)
             trans_obj.put_trans_data(trans_data)
 
         tenant.put_trans_obj(trans_obj)
@@ -162,10 +202,10 @@ def print_trans_data(tenant, trans_data):
         tenant.unregister_updates()
     return
 
-
 def main(cmd_args):
     global last_update_time, start_time, args
 
+    # Do some setup
     args = parse_command_line(cmd_args)
     start_time = int(time.time())
     last_update_time = start_time
@@ -177,13 +217,23 @@ def main(cmd_args):
                 args.dest_file, os.path.exists(args.dest_file)))
         sys.exit(1)
 
+    # Set some defaults for file name / tenant name
     if not args.destination_name:
         args.destination_name = args.dest_file
     if not args.source_name:
         args.source_name = args.source_file
 
+    # Ensure that the source and destination files are not the same
     if args.source_file == args.dest_file:
         print("Source file name and destination file name cannot be the same")
+        sys.exit()
+
+    # Ensure that files exist
+    if not os.path.exists(args.source_file):
+        error("Unable to find {}. Exitting.".format(args.source_file))
+    if not os.path.exists(args.source_file):
+        error("Unable to find {}. Exitting.".format(args.dest_file))
+    if not (os.path.exists(args.source_file) and os.path.exists(args.dest_file)):
         sys.exit()
 
     status("Loading {}".format(args.source_name))
@@ -202,12 +252,12 @@ def main(cmd_args):
 
     if args.respect:
         status("Respecting existing translated values in destination tenant")
-        dest_tenant.lock_translations()
+        dest_tenant.lock_translated_values()
 
     # If this option as specified, the in-memory data will only have the class names
     # that were requested.
     if args.class_name:
-        stats("Filtering for class.")
+        status("Filtering for class.")
         source_tenant.tree.write("{}.FILTERED.xml".format(args.source_name))
         dest_tenant.tree.write("{}.FILTERED.xml".format(args.destination_name))
         status("Created filtered files and exited")
@@ -222,13 +272,13 @@ def main(cmd_args):
     """
     # We do this for performance reasons, ignore lines that don't have values we care about
     status("Optimizing source file.")
-    source_tenant.remove_empty_translations()
+    source_tenant.remove_untranslated_instances()
 
 
-    # Perform validations is requested
-    if args.validate:
+    # Perform validations as requested
+    if args.validate_self:
         status("Validating")
-        source_tenant.validate()
+        source_tenant.validate_self()
         print("{}".format(source_tenant.get_errors()))
         for t in source_tenant.get_translated_items():
             try:
@@ -241,18 +291,19 @@ def main(cmd_args):
         dest_tenant.register_updates(print_trans_data)
     for translated_item in source_tenant.get_translated_items():
         if translated_item.WID_key:
-            print(u"About to add translation:\n{}".format(translated_item))
+            debug(u"About to add translation:\n{}".format(translated_item))
             if translated_item.seq == 248044:
-                print(u"{}".format(p(translated_item.element)))
+                debug(u"{}".format(p(translated_item.element)))
         try:
             dest_tenant.add_translation(translated_item)
         except KeyError:
+            debug(u"Unable to find match for {}".format(translated_item))
             pass
 
     # Remove lines with no translated value unless requested to leave them in the file
     if not args.all_lines:
         status("Optimizing  output file")
-        dest_tenant.remove_empty_translations()
+        dest_tenant.remove_untranslated_instances()
     # Writing output file
     fname = args.output_file_name
     if not fname:
