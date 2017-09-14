@@ -7,7 +7,7 @@
     be zipped, but it should be just a single file per language.
     Do this for the source and destination tenant
     Now run this script, 
-        load_xml_translations.py <source file> <destination file>
+        translate.py <source file> <destination file>
 
         Source and destination file will remain unchanged, but a new file named out.xml will be created. 
         Load out.xml into the destination tenant.
@@ -29,6 +29,7 @@ from translated_value_for_instance_data import Translated_Value_for_Instance_Dat
 import sys
 import argparse
 import os.path
+import codecs
 from lxml import etree
 
 def parse_command_line(cmd_args):
@@ -38,48 +39,51 @@ def parse_command_line(cmd_args):
     sub = parser.add_subparsers()
 
     # This is the normal mode, take in xml files from two tenants and move the translations
-    process = sub.add_parser("process")
-    process.add_argument("source_file", metavar="<Source file>", help=("This is the source file"
+    process_parser = sub.add_parser("process")
+    process_parser.add_argument("source_file", metavar="<Source file>", help=("This is the source file"
             "- the file that has the translated values."))
-    process.add_argument("dest_file", metavar="<Destination file>", help=("This is the "
+    process_parser.add_argument("dest_file", metavar="<Destination file>", help=("This is the "
             "destination file - the file that receives the translated values."))
-    process.add_argument("-destination_name", help=("Name for the destination tenant."
+    process_parser.add_argument("-destination_name", help=("Name for the destination tenant."
             "Optional. If not provided the filename will be used."))
-    process.add_argument("-source_name", help=("Name for the source tenant. Optional."
+    process_parser.add_argument("-source_name", help=("Name for the source tenant. Optional."
             "If not provided the filename will be used."))
-    process.add_argument("-output_file_name", help=("Name for "
+    process_parser.add_argument("-output_file_name", help=("Name for "
             "output file. If not provided it will be <destination file>-WITH_TRANSLATIONS.xml."))
-    process.add_argument("-class_name", action="append", default=[], help=("Generate files "
+    process_parser.add_argument("-class_name", action="append", default=[], help=("Generate files "
             "that contain only those class names. Generates files and quits."))
-    process.add_argument("-all_lines", default=False, action="store_true", help=("Default behavior "
+    process_parser.add_argument("-all_lines", default=False, action="store_true", help=("Default behavior "
             "is to remove all lines from destination file that do not contain translatable values, "
             "use this flag if you want all lines included in the destination file."))
-    process.add_argument("-v", "--validate_self", default=False, action="store_true", help=(
+    process_parser.add_argument("-v", "--validate_self", default=False, action="store_true", help=(
             "Perform validations against files. Current validations are to check for "
             "inconsistent translations and to check for source reference ids that do not "
             "exist in destination."))
-    process.add_argument("-respect", default=False, action="store_true", help=("Respects translated "
+    process_parser.add_argument("-respect", default=False, action="store_true", help=("Respects translated "
             "values in the destination tenant. Will not overwrite them"))
-    process.add_argument("-pretty", default=False, action="store_true", help=("Generates copies of "
+    process_parser.add_argument("-pretty", default=False, action="store_true", help=("Generates copies of "
             "source and destination xml files in human readable format (with spacing). *DO NOT* use "
             "these files as a source file for Workday as the spacing will break things. File will be "
             "the original file name with PRETTY as suffix before the .xml."))
-    process.add_argument("-examples", type=int, help=("Requires a number. Ouputs the first n examples "
+    process_parser.add_argument("-examples", type=int, help=("Requires a number. Ouputs the first n examples "
             "that have changed in destination file so you can check after load into Workday."))
+    process_parser.set_defaults(func=process)
 
     # Utility mode for combining multiple xml files into a single file
-    combine = sub.add_parser("combine")
-    combine.add_argument("Files to combine", nargs="+", help=("Provide a list of xml files to be combined into a "
+    combine_parser = sub.add_parser("combine")
+    combine_parser.add_argument("Files to combine", nargs="+", help=("Provide a list of xml files to be combined into a "
             "single xml file. Generally used when combining generated files from different languages"))
-    combine.set_defaults(func=combine)
+    combine_parser.set_defaults(func=combine)
 
     # Utility mode for creating iLoad friendly csv files from xml files
-    csv = sub.add_parser("csv")
-    csv.add_argument("Files to convert", nargs="+", help=("File(s) to convert to csv. "
-            "Will retain the same name. Input file is expected to be WD xml format. Output file "
-            "will be suitable for copy/paste directly into an iLoad file."))
+    csv_parser = sub.add_parser("csv")
+    csv_parser.add_argument("files_to_convert", metavar="Files to convert", nargs="+", help=("File(s) to convert to csv. "
+            "File retains the same name with csv suffix. Input file is expected to "
+            "be WD xml format. Output file is suitable for copy/paste directly into an iLoad file."))
+    csv_parser.set_defaults(func=csv)
 
     return parser.parse_args(cmd_args)
+
 
 """
     Convenience functions
@@ -122,6 +126,20 @@ def combine(flist, output_file_name):
         f.write(p(base_root))
     return
 
+def csv(args):
+    """
+    The args should be a list of one or more file names. The files should be WD xml formatted files
+    Open the file, create a tenant object, and generate the csv
+    :param args:
+    :return:
+    """
+    for fname in args.files_to_convert:
+        tree = etree.parse(fname)
+        new_fname = "{}.{}".format(os.path.splitext(fname)[0], "csv")
+        tenant = build_tenant(fname, new_fname)
+        generate_csv_file(new_fname, tenant)
+    return
+
 def generate_csv_file(file_name, tenant):
     """
         Given a tenant, generate a csv file with named file_name
@@ -130,11 +148,11 @@ def generate_csv_file(file_name, tenant):
     :param tenant:
     :return:
     """
-    with open(file_name, "w") as f:
+    with codecs.open(file_name, "w", encoding="utf-8") as f:
         f.write(tenant.get_csv_string())
     return
 
-def load_xml_data_into_tenant(file_name, tenant_name):
+def build_tenant(file_name, tenant_name):
     """
         In this context tenant is the python object Tenant, not the WD tenant
         Almost all of the xml logic is here aside from adding a new 
@@ -148,9 +166,12 @@ def load_xml_data_into_tenant(file_name, tenant_name):
         # You should be iterating through the Translatable_Tenant_Data_Data (name from iLoad)
         lang = trans_obj_xml.find('{urn:com.workday/bsvc}User_Language_Reference')[0].text
         class_name = trans_obj_xml.find('{urn:com.workday/bsvc}Class_Name').text
-        if args.class_name and class_name not in args.class_name:
-            root.remove(trans_obj_xml)
-            continue
+        try: # If we are not processing class_name was not an option
+            if args.class_name and class_name not in args.class_name:
+                root.remove(trans_obj_xml)
+                continue
+        except AttributeError:
+            args.class_name = None #Avoid errors moving forward
         ar = trans_obj_xml.find('{urn:com.workday/bsvc}Attribute_Reference')
         name = ar.find('{urn:com.workday/bsvc}Name').text
         namespace = ar.find('{urn:com.workday/bsvc}Namespace_URI').text
@@ -202,11 +223,10 @@ def print_trans_data(tenant, trans_data):
         tenant.unregister_updates()
     return
 
-def main(cmd_args):
-    global last_update_time, start_time, args
+def process(args):
+    global last_update_time, start_time
 
     # Do some setup
-    args = parse_command_line(cmd_args)
     start_time = int(time.time())
     last_update_time = start_time
 
@@ -237,10 +257,10 @@ def main(cmd_args):
         sys.exit()
 
     status("Loading {}".format(args.source_name))
-    source_tenant = load_xml_data_into_tenant(args.source_file, args.source_name)
+    source_tenant = build_tenant(args.source_file, args.source_name)
     print(source_tenant.get_stats())
     status("Loading {}".format(args.destination_name))
-    dest_tenant = load_xml_data_into_tenant(args.dest_file, args.destination_name)
+    dest_tenant = build_tenant(args.dest_file, args.destination_name)
     print(dest_tenant.get_stats())
 
     if args.pretty:
@@ -319,5 +339,13 @@ def main(cmd_args):
             f.write(etree.tostring(dest_tenant.tree.getroot(), pretty_print=True))
     return
 
+def main(cmd_args):
+    global args
+    args = parse_command_line(cmd_args)
+    args.func(args)
+    return
+
 if __name__ == "__main__":
     main(sys.argv[1:])
+
+

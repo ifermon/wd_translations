@@ -45,8 +45,8 @@ class Translated_Value_for_Instance_Data(object):
         return
 
     def get_csv_string(self):
-        if API_VERSION in ['28.2']:
-            ret_str = "{},,{},{},{},{},{},{},{}".format(self._id_type, self._id_value, self._id_parent_type,
+        if API_VERSION in ['28.2',]:
+            ret_str = u"{},,{},{},{},{},{},{},{}".format(self._id_type, self._id_value, self._id_parent_type,
                 self._id_parent_id, self._base_value, self._translated_value,
                 self._rich_base_value, self._translated_rich_value)
         return ret_str

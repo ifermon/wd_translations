@@ -24,15 +24,15 @@ class Translatable_Tenant_Data(object):
         self._parent = parent
 
     def get_csv_string(self):
-        ret_str = ""
-        if API_VERSION in ['28.2']:
-            header_str = "{},,{},{},{},{}".format("User_Language_ID", self._language, self._class_name, self._name,
+        ret_str = u""
+        if API_VERSION in ['28.2',]:
+            header_str = u"{},,{},{},{},{}".format("User_Language_ID", self._language, self._class_name, self._name,
                     self._namespace)
             row = header_str
             for td in self._trans_data_dict.values():
-                row = "{},{}".format(row, td.get_csv_string())
+                row = u"{},{}".format(row, td.get_csv_string())
                 ret_str += row
-                row = ",,,,,"
+                row = u",,,,,"
         return ret_str
 
 

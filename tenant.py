@@ -18,11 +18,11 @@ class Tenant(object):
         return
 
     def get_csv_string(self):
-        ret_str = ""
+        ret_str = u""
         i = 1
-        if API_VERSION in ['28.2']:
-            for to in self._trans_obj_dict:
-                row = ",{},{},{}".format(i, 1, to.get_csv_string())
+        if API_VERSION in ['28.2',]:
+            for to in self._trans_obj_dict.values():
+                row = u",{},{},{}".format(i, 1, to.get_csv_string())
                 i += 1
                 ret_str += row
         return ret_str
