@@ -18,22 +18,22 @@ class Translatable_Tenant_Data(object):
         self._WID_dict = defaultdict(list)
         self._error_strings = defaultdict(list)
         self._lock_translated_values = False
+        self._seq = Seq_Generator().id
         return
 
     def add_parent(self, parent):
         self._parent = parent
 
-    def get_csv_string(self):
-        ret_str = u""
+    def get_csv_row(self):
         if API_VERSION in ['28.2',]:
-            header_str = u"{},,{},{},{},{}".format("User_Language_ID", self._language, self._class_name, self._name,
+            row = u"1,{},,{},{},{},{},".format("User_Language_ID", self._language, self._class_name, self._name,
                     self._namespace)
-            row = header_str
+            if self.is_empty:
+                yield u"{}\n".format(row)
             for td in self._trans_data_dict.values():
-                row = u"{},{}".format(row, td.get_csv_string())
-                ret_str += row
-                row = u",,,,,"
-        return ret_str
+                row += u"{}\n".format(td.get_csv_string())
+                yield row
+                row = u"1,,,,,,,"
 
 
     def put_trans_data(self, trans_data):
@@ -129,8 +129,13 @@ class Translatable_Tenant_Data(object):
         self._has_translations = value
         return
     @property
+    def seq(self): return self._seq
+    @property
     def has_errors(self):
         return len(self._error_strings) != 0
+    @property
+    def is_empty(self):
+        return not len(self._trans_data_dict)
 
     def __repr__(self):
-        return "{}:{}:{}:{}".format(self._parent, self._language, self._class_name, self._name)
+        return "{}:{}:{}:{}:{}".format(self._seq, self._parent, self._language, self._class_name, self._name)

@@ -137,6 +137,7 @@ def csv(args):
         tree = etree.parse(fname)
         new_fname = "{}.{}".format(os.path.splitext(fname)[0], "csv")
         tenant = build_tenant(fname, new_fname)
+        status("Generating csv file named {}".format(new_fname))
         generate_csv_file(new_fname, tenant)
     return
 
@@ -149,7 +150,15 @@ def generate_csv_file(file_name, tenant):
     :return:
     """
     with codecs.open(file_name, "w", encoding="utf-8") as f:
-        f.write(tenant.get_csv_string())
+        row_ctr = 0
+        for row in tenant.get_csv_string():
+            f.write(row)
+            row_ctr += 1
+            if not row_ctr % 25:
+                break
+                status("Class number {}".format(row_ctr))
+            del(row)
+    sys.exit()
     return
 
 def build_tenant(file_name, tenant_name):
@@ -186,25 +195,25 @@ def build_tenant(file_name, tenant_name):
                 id_parent_type = ir[0].attrib['{urn:com.workday/bsvc}parent_type']
                 id_parent_id = ir[0].attrib['{urn:com.workday/bsvc}parent_id']
             except KeyError:
-                id_parent_type = None
-                id_parent_id = None
+                id_parent_type = ""
+                id_parent_id = ""
             id_value = ir[0].text
             try:
                 base_value = trans_data_xml.find('{urn:com.workday/bsvc}Base_Value').text
             except AttributeError:
-                base_value = None
+                base_value = ""
             try:
                 translated_value = trans_data_xml.find('{urn:com.workday/bsvc}Translated_Value').text
-            except AttributeError as e:
-                translated_value = None
+            except AttributeError:
+                translated_value = ""
             try:
                 rich_base_value = trans_data_xml.find('{urn:com.workday/bsvc}Rich_Base_Value').text
             except AttributeError:
-                rich_base_value = None
+                rich_base_value = ""
             try:
                 translated_rich_value = trans_data_xml.find('{urn:com.workday/bsvc}Translated_Rich_Value').text
-            except AttributeError as e:
-                translated_rich_value = None
+            except AttributeError:
+                translated_rich_value = ""
             trans_data = Translated_Value_for_Instance_Data(id_type, id_value, id_parent_type, id_parent_id, base_value,
                     translated_value, rich_base_value, translated_rich_value, trans_data_xml)
             trans_obj.put_trans_data(trans_data)
@@ -224,11 +233,6 @@ def print_trans_data(tenant, trans_data):
     return
 
 def process(args):
-    global last_update_time, start_time
-
-    # Do some setup
-    start_time = int(time.time())
-    last_update_time = start_time
 
     # Confirm that files exist:
     if not (os.path.exists(args.source_file) and os.path.exists(args.dest_file)):
@@ -340,7 +344,12 @@ def process(args):
     return
 
 def main(cmd_args):
-    global args
+    global args, start_time, last_update_time
+
+    # Do some setup
+    start_time = int(time.time())
+    last_update_time = start_time
+
     args = parse_command_line(cmd_args)
     args.func(args)
     return

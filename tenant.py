@@ -18,14 +18,13 @@ class Tenant(object):
         return
 
     def get_csv_string(self):
-        ret_str = u""
         i = 1
         if API_VERSION in ['28.2',]:
             for to in self._trans_obj_dict.values():
-                row = u",{},{},{}".format(i, 1, to.get_csv_string())
+                for row in to.get_csv_row():
+                    class_row = u",{},{}".format(i, row)
+                    yield class_row
                 i += 1
-                ret_str += row
-        return ret_str
 
     def get_errors(self):
         ret_str = ""

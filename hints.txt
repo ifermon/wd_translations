@@ -1,3 +1,0 @@
-execfile("load_xml_translations.py", globals())
-
-lets you load the file then work in the interperter

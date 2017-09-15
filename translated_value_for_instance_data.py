@@ -12,7 +12,7 @@ seq = 0
 
 class Translated_Value_for_Instance_Data(object):
 
-    def __init__(self, id_type, id_value, id_parent_type, id_parent_id, base_value=None, translated_value=None, rich_base_value=None, translated_rich_value=None, element=None):
+    def __init__(self, id_type, id_value, id_parent_type, id_parent_id, base_value="", translated_value="", rich_base_value="", translated_rich_value="", element=None):
         global seq
         self._id_type = id_type
         self._id_value = id_value
@@ -24,8 +24,7 @@ class Translated_Value_for_Instance_Data(object):
         self._translated_rich_value = translated_rich_value
         self._locked = False
         self._parent = None
-        self._seq = seq
-        seq += 1
+        self._seq = Seq_Generator().id
         if translated_value or translated_rich_value:
             self._has_translation = True
             if translated_value:
@@ -46,7 +45,7 @@ class Translated_Value_for_Instance_Data(object):
 
     def get_csv_string(self):
         if API_VERSION in ['28.2',]:
-            ret_str = u"{},,{},{},{},{},{},{},{}".format(self._id_type, self._id_value, self._id_parent_type,
+            ret_str = u"{},,{},{},{},\"{}\",\"{}\",\"{}\",\"{}\"".format(self._id_type, self._id_value, self._id_parent_type,
                 self._id_parent_id, self._base_value, self._translated_value,
                 self._rich_base_value, self._translated_rich_value)
         return ret_str

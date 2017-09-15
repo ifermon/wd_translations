@@ -39,3 +39,10 @@ if not len(main_logger.handlers):
     val_fh = l.FileHandler("Validations-{}.txt".format(timestamp))
     validation_logger.addHandler(val_fh)
     validation_logger.setLevel(l.INFO)
+
+import itertools
+
+class Seq_Generator():
+    newid = itertools.count().next
+    def __init__(self):
+        self.id = Seq_Generator.newid()
