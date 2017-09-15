@@ -80,6 +80,8 @@ def parse_command_line(cmd_args):
     csv_parser.add_argument("files_to_convert", metavar="Files to convert", nargs="+", help=("File(s) to convert to csv. "
             "File retains the same name with csv suffix. Input file is expected to "
             "be WD xml format. Output file is suitable for copy/paste directly into an iLoad file."))
+    csv_parser.add_argument("-all_records", action="store_false", help=("By default the program will trim records "
+            "without translations. Specify this flag all records are required."))
     csv_parser.set_defaults(func=csv)
 
     return parser.parse_args(cmd_args)
@@ -134,9 +136,10 @@ def csv(args):
     :return:
     """
     for fname in args.files_to_convert:
-        tree = etree.parse(fname)
         new_fname = "{}.{}".format(os.path.splitext(fname)[0], "csv")
         tenant = build_tenant(fname, new_fname)
+        if not args.all_records:
+            tenant.remove_untranslated_instances()
         status("Generating csv file named {}".format(new_fname))
         generate_csv_file(new_fname, tenant)
     return
