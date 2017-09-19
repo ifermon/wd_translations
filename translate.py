@@ -344,10 +344,13 @@ def process(args):
         with open(pretty_fname, "w") as f:
             status("Writing pretty output file: {}".format(pretty_fname))
             f.write(etree.tostring(dest_tenant.tree.getroot(), pretty_print=True))
+    print(dest_tenant.get_stats())
     return
 
 def main(cmd_args):
     global args, start_time, last_update_time
+
+    debug("Called with arguments: {}".format(cmd_args))
 
     # Do some setup
     start_time = int(time.time())

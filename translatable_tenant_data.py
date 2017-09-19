@@ -104,7 +104,8 @@ class Translatable_Tenant_Data(object):
     def lock_translated_values(self):
         self._lock_translated_values = True
         for td in self._trans_data_dict.values():
-            td.lock()
+            if td.has_translation:
+                td.lock()
         return
         
 
