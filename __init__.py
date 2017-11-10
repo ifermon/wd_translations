@@ -1,5 +1,5 @@
-from my_type import Source_Type
-from my_type import Error_Type
+from .my_type import Source_Type
+from .my_type import Error_Type
 
 XML = Source_Type.XML
 INCONSISTENT_TRANSLATION = Error_Type.INCONSISTENT_TRANSLATION
@@ -41,8 +41,7 @@ if not len(main_logger.handlers):
     validation_logger.setLevel(l.INFO)
 
 import itertools
-
 class Seq_Generator():
-    newid = itertools.count().next
+    newid = itertools.count().__next__
     def __init__(self):
         self.id = Seq_Generator.newid()

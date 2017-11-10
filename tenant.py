@@ -1,8 +1,9 @@
-from __init__ import *
+from .__init__ import *
 """
     The tenant that the data is sourced from
 
 """
+from .translatable_tenant_data import Translatable_Tenant_Data
 
 class Tenant(object):
 
@@ -13,14 +14,15 @@ class Tenant(object):
         self._update_hook = None
         self._file_name = file_name
         self._element = tree.getroot()
-        self._trans_obj_dict = {}
+        self._translatable_tenant_data_dict = {}
+        self._translatable_tenant_data_list = []
         self._lock_translated_values = False
         return
 
     def get_csv_string(self):
         i = 1
         if API_VERSION in ['28.2',]:
-            for to in self._trans_obj_dict.values():
+            for to in self._translatable_tenant_data_dict.values():
                 for row in to.get_csv_row():
                     class_row = u",{},{}".format(i, row)
                     yield class_row
@@ -28,7 +30,7 @@ class Tenant(object):
 
     def get_errors(self):
         ret_str = ""
-        for to in self._trans_obj_dict.values():
+        for to in self._translatable_tenant_data_dict.values():
             if not to.has_errors:
                 continue
             ret_str += "{} has the following errors:\n".format(to)
@@ -39,9 +41,19 @@ class Tenant(object):
                     ret_str += "\terr_msg\n"
         return ret_str
 
-    def put_trans_obj(self, trans_obj):
-        self._trans_obj_dict[trans_obj.key] = trans_obj
-        trans_obj.add_parent(self)
+    def put_translatable_tenant_data(self, ttd):
+        assert type(ttd) == Translatable_Tenant_Data, "Invalid type passed to put_translatable_tenant_data"
+        self._translatable_tenant_data_dict[ttd.key] = ttd
+        ttd.add_parent(self)
+        self._translatable_tenant_data_list.append(ttd)
+        return
+
+    def remove_translatable_tenant_data(self, ttd):
+        if ttd.key in self._translatable_tenant_data_dict:
+            del self._translatable_tenant_data_dict[ttd.key]
+        if ttd in self._translatable_tenant_data_list:
+            self._translatable_tenant_data_list.remove(ttd)
+            self._element.remove(ttd.element)
         return
 
     def remove_untranslated_instances(self):
@@ -51,17 +63,17 @@ class Tenant(object):
             that do not have translations then that will be removed as well.
         :return:
         """
-        for key, to in self._trans_obj_dict.items():
+        for key, to in self._translatable_tenant_data_dict.items():
             if to.has_translations:
                 to.remove_untranslated_data()
             else:
                 self._element.remove(to.element)
-                del self._trans_obj_dict[key]
+                del self._translatable_tenant_data_dict[key]
         return
 
     def get_translated_items(self):
         ret_list = []
-        for to in self._trans_obj_dict.values():
+        for to in self._translatable_tenant_data_dict.values():
             ret_list += to.get_translated_items()
         return ret_list
 
@@ -79,24 +91,22 @@ class Tenant(object):
             :return: 
         """
         # Will throw KeyError if it is not found (either object or instance)
-        destination_trans_obj = self._trans_obj_dict[translation.parent_key]
+        assert type(translation) == Translatable_Tenant_Data, "Invalid parameter type passed to add_translation"
+        destination_trans_obj = self._translatable_tenant_data_dict[translation.parent_key]
         destination_trans_obj.update_translation(translation)
-        #if self._update_hook:
-        #    self._update_hook(self, translation)
         return
 
     def validate_self(self):
         """
             Perform validations within self (not tenant vs. tenant)
         """
-        for to in self._trans_obj_dict.values():
+        for to in self._translatable_tenant_data_dict.values():
             to.get_inconsistent_translations()
         return
 
-
     def lock_translated_values(self):
         self._lock_translated_values = True
-        for to in self._trans_obj_dict.values():
+        for to in self._translatable_tenant_data_dict.values():
             to.lock_translated_values()
         return
         
@@ -108,14 +118,17 @@ class Tenant(object):
         self._update_hook = None
         return
 
+    def translatable_tenant_data_items(self):
+        return list(self._translatable_tenant_data_list)
+
     def get_all_translatable_items(self):
         ret_list = []
-        for to in self._trans_obj_dict.values():
+        for to in self._translatable_tenant_data_list:
             ret_list += to.get_all_translatable_items()
         return ret_list
 
     def get_stats(self):
-        num_trans_objects = len(self._trans_obj_dict)
+        num_trans_objects = len(self._translatable_tenant_data_dict)
         num_trans_data = 0
         num_WID_trans_data = 0
         num_translations = 0
@@ -137,4 +150,6 @@ class Tenant(object):
     def tree(self): return self._tree
     @property
     def file_name(self): return self._file_name
+    @property
+    def element(self): return self._element
     def __repr__(self): return self._name

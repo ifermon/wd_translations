@@ -22,15 +22,18 @@
         Add timing count down
 
 """
-from __init__ import *
-from tenant import Tenant
-from translatable_tenant_data import Translatable_Tenant_Data
-from translated_value_for_instance_data import Translated_Value_for_Instance_Data
+from .__init__ import *
+from .tenant import Tenant
+from .translatable_tenant_data import Translatable_Tenant_Data
+from .translated_value_for_instance_data import Translated_Value_for_Instance_Data
+from .shortcut import Translated_Class, Translatable_Item, Translation
 import sys
 import argparse
 import os.path
 import codecs
+import csv as csv_module
 from lxml import etree
+from copy import deepcopy
 
 def parse_command_line(cmd_args):
     parser = argparse.ArgumentParser(description=("Takes translation files from one tenant and"
@@ -76,16 +79,30 @@ def parse_command_line(cmd_args):
     combine_parser.set_defaults(func=combine)
 
     # Utility mode for creating iLoad friendly csv files from xml files
-    csv_parser = sub.add_parser("csv")
-    csv_parser.add_argument("files_to_convert", metavar="Files to convert", nargs="+", help=("File(s) to convert to csv. "
+    iload_parser = sub.add_parser("iload")
+    iload_parser.add_argument("files_to_convert", metavar="Files to convert", nargs="+", help=("File(s) to convert to csv. "
             "File retains the same name with csv suffix. Input file is expected to "
             "be WD xml format. Output file is suitable for copy/paste directly into an iLoad file."))
-    csv_parser.add_argument("-all_records", action="store_false", help=("By default the program will trim records "
+    iload_parser.add_argument("-all-records", action="store_false", help=("By default the program will trim records "
             "without translations. Specify this flag all records are required."))
+    iload_parser.set_defaults(func=iload)
+
+    # Takes one or more xml files and generates pretty versions
+    pretty_parser = sub.add_parser("pretty")
+    pretty_parser.add_argument("files_to_convert", metavar="Files to convert", nargs="+", help=("File(s0 to convert to a "
+            "pretty formated xml"))
+    pretty_parser.set_defaults(func=pretty)
+
+    # Take a csv file as the source of translations to put into a destination file
+    csv_parser = sub.add_parser("csv", description=("Takes a source file in the following csv format:"
+            "class name, name, reference type (ref id / wid), reference, text to translate, language id, [language id]..."
+            "Language Id must be a valid WD language ID in the header row"))
+    csv_parser.add_argument("-source-file", help=("File to use as a source for translations. Only handles "
+            "plain text strings (not rich text) at this point."))
+    csv_parser.add_argument("-destination-file", help=("The populated xml file from the target / destination tenant"))
     csv_parser.set_defaults(func=csv)
 
     return parser.parse_args(cmd_args)
-
 
 """
     Convenience functions
@@ -129,6 +146,90 @@ def combine(flist, output_file_name):
     return
 
 def csv(args):
+    """
+        Open the csv file and read into shortcut object
+        Open xml and and build tenant object
+            Iterate through translatable tenant data until we find matching class
+            copy one for each target language and put in the translations
+            Row looks like this;
+            class name, name, reference type, reference ID, rich text (y/n), for translation, lang id, ...
+    """
+    with open(args.source_file, "rU", encoding="utf_16") as csvfile:
+        reader = csv_module.reader(csvfile)
+        # First row is a head row that will give us the language tags
+        CLASS_NAME_I = 0
+        NAME_I = 1
+        REFERENCE_TYPE_I = 2
+        REFERENCE_ID_I = 3
+        RICH_TEXT_FLAG_I = 4
+        BASE_VALUE_I = 5
+        TRANSLATION_START_I = 6
+        lang_list = next(reader)[TRANSLATION_START_I:]
+        class_obj_dict = {}
+        info("The language list is: {}".format(lang_list))
+        for row in reader:
+            translated_class = Translated_Class(row[CLASS_NAME_I], row[NAME_I])
+            if translated_class.key not in class_obj_dict:
+                class_obj_dict[translated_class.key] = translated_class
+            if row[RICH_TEXT_FLAG_I] == "Y":
+                rich_flag = True
+            else:
+                rich_flag = False
+            translatable_item = Translatable_Item(row[REFERENCE_TYPE_I], row[REFERENCE_ID_I], row[BASE_VALUE_I], rich_flag)
+            translated_class.add_translatable_item(translatable_item)
+            # Now go through translations by language
+            for i in range(TRANSLATION_START_I, TRANSLATION_START_I + len(lang_list)):
+                if row[i]:  # If value is not empty, then
+                    translatable_item.add_translation(Translation(lang_list[i-TRANSLATION_START_I],row[i]))
+    dest_tenant = build_tenant(args.destination_file, args.destination_file)
+
+    # Okay, now we have both files loaded into memory.
+    # Trim out the non-needed classes from the dest_tenant
+    for item in dest_tenant.translatable_tenant_data_items():
+        # Using generate_key function would be better, but language is an issue
+        if (item.class_name, item.name) not in class_obj_dict:
+            dest_tenant.remove_translatable_tenant_data(item)
+        else:
+            for lang in lang_list:
+                info("Adding {} to {}".format(lang, item.class_name))
+                new_item = deepcopy(item)
+                new_item.change_lang(lang)
+                dest_tenant.element.append(new_item.element)
+                dest_tenant.put_translatable_tenant_data(new_item)
+    # Now we have a tenant object with entries for all the langauges, unnecessary objects removed
+    # Go through each translation object per langage, find a match if exists and populate, otherwise delete node
+    for i in dest_tenant.translatable_tenant_data_items():
+        translation = class_obj_dict[i.class_name, i.name]
+        working_lang = i.language
+        for tvfid in i.get_all_translatable_items():
+            titem = translation.get_translatable_item_by_key(tvfid.key)
+            if not titem:  # Didn't find a match, delete the xml tree and associated obj
+                i.remove_translated_value_for_instance_data(tvfid)
+                continue
+            # Found a match. If translation in language exists, add it
+            tvalue = titem.get_translated_value(working_lang)
+            print(etree.tostring(dest_tenant.tree.getroot(), encoding="unicode", pretty_print=False))
+            tvfid.add_translation_text(tvalue)
+            #print(etree.tostring(dest_tenant.tree, xml_declaration=True, encoding="utf-8", pretty_print=False))
+            print(etree.tostring(dest_tenant.tree, encoding="unicode", pretty_print=False))
+
+    pretty_fname = "{}.PRETTY{}".format(os.path.splitext(args.destination_file)[0],os.path.splitext(args.destination_file)[1])
+    with open(pretty_fname, "w", encoding="utf_16") as f:
+        status("Writing pretty output file: {}".format(pretty_fname))
+        f.writelines(etree.tostring(dest_tenant.tree.getroot(), encoding="unicode", pretty_print=True))
+
+    return
+
+def pretty(args):
+    for fname in args.files_to_convert:
+        pretty_fname = "{}.PRETTY{}".format(os.path.splitext(fname)[0], os.path.splitext(fname)[1])
+        tree = etree.parse(fname)
+        with open(pretty_fname, "w") as f:
+            status("Writing pretty output file: {}".format(pretty_fname))
+            f.write(etree.tostring(tree.getroot(), pretty_print=True))
+    return
+
+def iload(args):
     """
     The args should be a list of one or more file names. The files should be WD xml formatted files
     Open the file, create a tenant object, and generate the csv
@@ -187,7 +288,6 @@ def build_tenant(file_name, tenant_name):
         ar = trans_obj_xml.find('{urn:com.workday/bsvc}Attribute_Reference')
         name = ar.find('{urn:com.workday/bsvc}Name').text
         namespace = ar.find('{urn:com.workday/bsvc}Namespace_URI').text
-        #print("lang {} class_name {} name {} namespace {}".format(lang, class_name, name, namespace))
 
         trans_obj = Translatable_Tenant_Data(lang, class_name, name, namespace, trans_obj_xml)
 
@@ -219,9 +319,9 @@ def build_tenant(file_name, tenant_name):
                 translated_rich_value = ""
             trans_data = Translated_Value_for_Instance_Data(id_type, id_value, id_parent_type, id_parent_id, base_value,
                     translated_value, rich_base_value, translated_rich_value, trans_data_xml)
-            trans_obj.put_trans_data(trans_data)
+            trans_obj.put_translated_value_for_instance_data(trans_data)
 
-        tenant.put_trans_obj(trans_obj)
+        tenant.put_translatable_tenant_data(trans_obj)
 
     return tenant
 
@@ -281,7 +381,7 @@ def process(args):
         status("Respecting existing translated values in destination tenant")
         dest_tenant.lock_translated_values()
 
-    # If this option as specified, the in-memory data will only have the class names
+    # If this option was specified, the in-memory data will only have the class names
     # that were requested.
     if args.class_name:
         status("Filtering for class.")

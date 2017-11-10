@@ -2,7 +2,7 @@
 
 """
 
-from __init__ import *
+from .__init__ import *
 import sys
 from lxml import etree
 from copy import deepcopy
@@ -38,6 +38,7 @@ class Translated_Value_for_Instance_Data(object):
         if self._id_type == "WID":
             self._is_WID = True
             self._WID_key = u"{}{}".format(id_type, base_value)
+            self._key = self._WID_key
         else:
             self._is_WID = False
             self._WID_key = None
@@ -56,22 +57,44 @@ class Translated_Value_for_Instance_Data(object):
 
     def add_translation(self, translation):
         """
-            translation is a Trans_Data object
+            translation is a Translated_Value_for_Instance_Data object
             If I have an existing value, remove it first before adding the new one
         """
+        assert type(translation) == Translated_Value_for_Instance_Data, "Invalid type passed to add_translation"
         if not self._locked:
             self.remove_translation()
             self._translated_value = translation.translated_value
             e = translation.element.find('{urn:com.workday/bsvc}Translated_Value')
-            if e is not None:
+            if e:
                 self._element.append(deepcopy(e))
             e = translation.element.find('{urn:com.workday/bsvc}Translated_Rich_Value')
-            if e is not None:
+            if e:
                 self._element.append(deepcopy(e))
             self._has_translation = True
 
             self.parent.has_translations = True
         return
+
+    def add_translation_text(self, trans_text):
+        """
+            Add translation from a string (vs. another object)
+        :param trans_text:
+        :return:
+        """
+        be = self.element.find('{urn:com.workday/bsvc}Translated_Value')
+        if be:
+            e.text = trans_text
+        re = self.element.find('{urn:com.workday/bsvc}Translated_Rich_Value')
+        if re:
+            e.text = trans_text
+        if not (be or re):
+            e = etree.Element('{urn:com.workday/bsvc}Translated_Value')
+            e.text = trans_text
+            self.element.append(e)
+        return
+
+
+
 
     def remove_translation(self):
         """
@@ -102,7 +125,6 @@ class Translated_Value_for_Instance_Data(object):
     def lock(self):
         self._locked = True
         return
-
 
     @property
     def WID_key(self): return self._WID_key

@@ -1,24 +1,51 @@
 """
 
 """
+from weakref import WeakValueDictionary
 from collections import defaultdict
-from __init__ import *
+from .__init__ import *
 
 class Translatable_Tenant_Data(object):
 
+    def __new__(cls, *args, **kwargs):
+        if "key_list" not in cls.__dict__:
+            cls.key_list = WeakValueDictionary()
+        instance = object.__new__(cls)
+        try:
+            key = cls.generate_key(args[0], args[1], args[2])
+            if key in cls.key_list:
+                instance._duplicate = True
+                instance._dup_item = cls.key_list[key]
+            else:
+                instance._duplicate = False
+        except IndexError:
+            pass
+        return instance
+
+    @classmethod
+    def generate_key(cls, language, class_name, name):
+        return "{}{}{}".format(language, class_name, name)
+
     def __init__(self, language, class_name, name, namespace, element=None):
+        self._duplicate = False
         self._language = language
         self._class_name = class_name
         self._name = name
         self._namespace = namespace
         self._element = element
         self._has_translations = False
-        self._trans_data_dict = {}
-        self._key = "{}{}{}{}".format(language, class_name, name, namespace)
+        self._translated_value_for_instance_data_dict = {}
+        self._key = self.generate_key(language, class_name, name)
         self._WID_dict = defaultdict(list)
         self._error_strings = defaultdict(list)
         self._lock_translated_values = False
         self._seq = Seq_Generator().id
+        return
+
+    def change_lang(self, new_lang):
+        self._language = new_lang
+        self._element.find('{urn:com.workday/bsvc}User_Language_Reference')[0].text = new_lang
+        self._key = Translatable_Tenant_Data.generate_key(self._language, self._class_name, self._name)
         return
 
     def add_parent(self, parent):
@@ -30,14 +57,13 @@ class Translatable_Tenant_Data(object):
                     self._namespace)
             if self.is_empty:
                 yield u"{}\n".format(row)
-            for td in self._trans_data_dict.values():
+            for td in self._translated_value_for_instance_data_dict.values():
                 row += u"{}\n".format(td.get_csv_string())
                 yield row
                 row = u"1,,,,,,,"
 
-
-    def put_trans_data(self, trans_data):
-        self._trans_data_dict[trans_data.key] = trans_data
+    def put_translated_value_for_instance_data(self, trans_data):
+        self._translated_value_for_instance_data_dict[trans_data.key] = trans_data
         trans_data.add_parent(self)
         if trans_data.has_translation:
             self._has_translations = True
@@ -51,7 +77,7 @@ class Translatable_Tenant_Data(object):
             Check to see where we have identical base values translated differently
         """
         t_dict = {}
-        for td in self._trans_data_dict.values():
+        for td in self._translated_value_for_instance_data_dict.values():
             if not td.has_translation:
                 continue
             if td.base_value in t_dict:
@@ -62,24 +88,33 @@ class Translatable_Tenant_Data(object):
                 t_dict[td.base_value] = td
         return
 
+    def remove_translated_value_for_instance_data(self, tvfid):
+        self._element.remove(tvfid.element)
+        del self._translated_value_for_instance_data_dict[tvfid.key]
+        if tvfid.is_WID:
+            del self._WID_dict[tvfid.key]
+        return
+
     def remove_untranslated_data(self):
-        for key, d in self._trans_data_dict.items():
+        for key, d in self._translated_value_for_instance_data_dict.items():
             if not d.has_translation:
                 self._element.remove(d.element)
-                del self._trans_data_dict[key]
+                if d.is_WID:
+                    del self._WID_dict[d.key]
+                del self._translated_value_for_instance_data_dict[key]
         return
 
     def get_translated_items(self):
         ret_list = []
         if self._has_translations:
-            for td in self._trans_data_dict.values():
+            for td in self._translated_value_for_instance_data_dict.values():
                 if td.has_translation:
                     ret_list.append(td)
         return ret_list
 
     def get_all_translatable_items(self):
         ret_list = []
-        for td in self._trans_data_dict.values():
+        for td in self._translated_value_for_instance_data_dict.values():
             ret_list.append(td)
         return ret_list
 
@@ -95,7 +130,7 @@ class Translatable_Tenant_Data(object):
             for td in self._WID_dict[translation.WID_key]:
                 td.add_translation(translation)
         else:
-            self._trans_data_dict[translation.key].add_translation(translation)
+            self._translated_value_for_instance_data_dict[translation.key].add_translation(translation)
         return
 
     def get_error_strings(self):
@@ -103,12 +138,14 @@ class Translatable_Tenant_Data(object):
 
     def lock_translated_values(self):
         self._lock_translated_values = True
-        for td in self._trans_data_dict.values():
+        for td in self._translated_value_for_instance_data_dict.values():
             if td.has_translation:
                 td.lock()
         return
         
 
+    @property
+    def is_duplicate(self): return self._duplicate
     @property
     def key(self): return self._key
     @property
@@ -136,7 +173,7 @@ class Translatable_Tenant_Data(object):
         return len(self._error_strings) != 0
     @property
     def is_empty(self):
-        return not len(self._trans_data_dict)
+        return not len(self._translated_value_for_instance_data_dict)
 
     def __repr__(self):
         return "{}:{}:{}:{}:{}".format(self._seq, self._parent, self._language, self._class_name, self._name)
