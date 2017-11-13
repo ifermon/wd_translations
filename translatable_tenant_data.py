@@ -3,6 +3,7 @@
 """
 from weakref import WeakValueDictionary
 from collections import defaultdict
+from lxml import etree
 from .__init__ import *
 
 class Translatable_Tenant_Data(object):
@@ -89,6 +90,8 @@ class Translatable_Tenant_Data(object):
         return
 
     def remove_translated_value_for_instance_data(self, tvfid):
+        print(u"My element is: {}".format(etree.tostring(self._element)))
+        print(u"The element I'm removing is: {}".format(etree.tostring(tvfid.element)))
         self._element.remove(tvfid.element)
         del self._translated_value_for_instance_data_dict[tvfid.key]
         if tvfid.is_WID:

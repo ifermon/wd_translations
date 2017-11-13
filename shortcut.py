@@ -36,6 +36,8 @@ class Translated_Class(object):
         self._key_dict = {}
         return
 
+    def __repr__(self): return "{}".format(self._key)
+
     def add_translatable_item(self, titem):
         assert type(titem)==Translatable_Item, "Invalid item passed to add_item"
         self._item_list.append(titem)
@@ -74,6 +76,8 @@ class Translatable_Item(object):
         else:
             self._key = u"{}{}{}".format(reference_type, reference_id, base_value)
         return
+
+    def __repr__(self): return self._key
 
     def get_translated_value(self, lang):
         ret = None

@@ -25,10 +25,11 @@ validation = validation_logger.info
 
 if not len(main_logger.handlers):
     # Setup logging (declared in __init__.py)
-    timestamp = time.strftime("%m%d%Y-%H:%M:%S%z")
+    timestamp = time.strftime("%m%d%Y-%H.%M.%S%z")
     main_logger.setLevel(l.DEBUG)
     sh = l.StreamHandler()
     sh.setLevel(l.INFO)
+    sh.setLevel(l.DEBUG)
     fh = l.FileHandler("Translations_Log_File-{}.txt".format(timestamp))
     fhformatter = l.Formatter(datefmt="%y%m%d-%H%M%S%z",
                               fmt="%(asctime)-22s %(message)s [%(filename)s@%(lineno)s]FH")

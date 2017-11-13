@@ -1,9 +1,8 @@
-from lxml import etree
-import sys
+import wd_languages as wd
 
-tree = etree.parse(sys.argv[1])
 
-root = tree.getroot()
 
-print(etree.tostring(root, pretty_print=True))
+a = wd.User_LanguageObjectIDType("User_Language_ID", "fr_FR")
 
+with open("test.xml", "w") as f:
+    a.export(f, 0)
