@@ -132,7 +132,7 @@ class Translatable_Item(Indexable_Upsert):
                  translated_value=None, rich_translated_value=None, namespace=None ):
         # We may already exist, so check to see if we are already defined
         if self._first_time_in_init:
-            debug("Creating new translatable item with key {}".format(self._key))
+            #debug("Creating new translatable item with key {}".format(self._key))
             self._first_time_in_init = False
             self._translated_class = Translatable_Class(class_name, name)
             self._translated_class.add_translatable_item(self)

@@ -14,6 +14,11 @@ API_VERSION = '28.2'
 """
 import logging as l
 import time
+import sys
+
+from distutils.version import LooseVersion
+if sys.version_info < (3, 4):
+    raise "Must use python version 3.4 or greater. (Hint: did you use python3?)"
 
 main_logger = l.getLogger("wd_translations")
 debug = main_logger.debug

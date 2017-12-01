@@ -1661,8 +1661,7 @@ def parseLiteral(inFileName, silence=False):
     return rootObj
 
 
-def main():
-    args = sys.argv[1:]
+def main(args):
     if len(args) == 1:
         parse(args[0])
     else:
@@ -1671,7 +1670,7 @@ def main():
 
 if __name__ == '__main__':
     #import pdb; pdb.set_trace()
-    main()
+    main(sys.argv[1:])
 
 
 __all__ = [

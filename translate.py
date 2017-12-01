@@ -20,6 +20,7 @@
     The user generated csv file must have EXACT matches for these items. Either for the ref ids or for the strings if WID.
 
     TODO:
+        Clean up old code, remove unused imports, comment, add help
         Add database support
         Implement REST integration 
         Lots more comments
@@ -165,49 +166,62 @@ def csv(args):
     """
     translatable_item_set = set()
 
-    with open(args.source_file, "rU", encoding="utf_16") as csvfile:
-        source = Translation_Source(args.source_file)
-        reader = csv_module.reader(csvfile)
-        # First row is a head row that will give us the language tags
-        CLASS_NAME_I = 0
-        NAME_I = 1
-        REFERENCE_TYPE_I = 2
-        REFERENCE_ID_I = 3
-        RICH_TEXT_FLAG_I = 4
-        BASE_VALUE_I = 5
-        TRANSLATION_START_I = 6
-        lang_list = next(reader)[TRANSLATION_START_I:]
-        info("The language list is: {}".format(lang_list))
-        for row in reader:
-            if not row[CLASS_NAME_I]:
-                continue  # Skip blank lines, class name required
-            if row[RICH_TEXT_FLAG_I] in ["Y", "y", "T"]:
-                rich_flag = True
-                rich_base_value = row[BASE_VALUE_I]
-                base_value = None
-            else:
-                rich_flag = False
-                base_value = row[BASE_VALUE_I]
-                rich_base_value = None
-            try:
-                t = Translatable_Item(row[CLASS_NAME_I], row[NAME_I], row[REFERENCE_TYPE_I],
-                        row[REFERENCE_ID_I], None, None, base_value, rich_base_value, source)
-            except:
-                print(row)
-                raise
-            translatable_item_set.add(t)
-
-            # Now go through translations by language
-            for index, lang in enumerate(lang_list, TRANSLATION_START_I):
-                val = row[index]
-                if val:  # If value is not empty, then
-                    if rich_flag:
-                        translated_value = None
-                        rich_translated_value = val
+    encodings_to_try = ["utf_16", "utf_8"]
+    success_with_encoding = False
+    for encoding in encodings_to_try:
+        try:
+            with open(args.source_file, "rU", encoding=encoding) as csvfile:
+                source = Translation_Source(args.source_file)
+                reader = csv_module.reader(csvfile)
+                # First row is a head row that will give us the language tags
+                CLASS_NAME_I = 0
+                NAME_I = 1
+                REFERENCE_TYPE_I = 2
+                REFERENCE_ID_I = 3
+                RICH_TEXT_FLAG_I = 4
+                BASE_VALUE_I = 5
+                TRANSLATION_START_I = 6
+                lang_list = next(reader)[TRANSLATION_START_I:]
+                info("The language list is: {}".format(lang_list))
+                for row in reader:
+                    if not row[CLASS_NAME_I]:
+                        continue  # Skip blank lines, class name required
+                    if row[RICH_TEXT_FLAG_I] in ["Y", "y", "T"]:
+                        rich_flag = True
+                        rich_base_value = row[BASE_VALUE_I]
+                        base_value = None
                     else:
-                        translated_value = val
-                        rich_translated_value = None
-                    t.add_translation(source, lang, translated_value, rich_translated_value)
+                        rich_flag = False
+                        base_value = row[BASE_VALUE_I]
+                        rich_base_value = None
+                    try:
+                        t = Translatable_Item(row[CLASS_NAME_I], row[NAME_I], row[REFERENCE_TYPE_I],
+                                row[REFERENCE_ID_I], None, None, base_value, rich_base_value, source)
+                    except:
+                        print(row)
+                        raise
+                    translatable_item_set.add(t)
+
+                    # Now go through translations by language
+                    for index, lang in enumerate(lang_list, TRANSLATION_START_I):
+                        val = row[index]
+                        if val:  # If value is not empty, then
+                            if rich_flag:
+                                translated_value = None
+                                rich_translated_value = val
+                            else:
+                                translated_value = val
+                                rich_translated_value = None
+                            t.add_translation(source, lang, translated_value, rich_translated_value)
+            # End of with block
+            success_with_encoding = True
+            break  # Break out of for loop for encodings
+        except UnicodeError:
+            info("Tried {} encoding and failed".format(encoding))
+            continue
+    if not success_with_encoding:
+        # No good encodings found
+        raise UnicodeError("No encodings found that worked with supplied file")
 
     translatable_item_set |= set(load_workday_xml_file(args.destination_file, only_load_translations_flag=True))
 
