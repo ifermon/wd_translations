@@ -4,6 +4,7 @@ from .__init__ import *
 
 """
 from .translatable_tenant_data import Translatable_Tenant_Data
+from .translated_value_for_instance_data import Translated_Value_for_Instance_Data
 
 class Tenant(object):
 
@@ -63,12 +64,16 @@ class Tenant(object):
             that do not have translations then that will be removed as well.
         :return:
         """
+        del_list = []
         for key, to in self._translatable_tenant_data_dict.items():
             if to.has_translations:
                 to.remove_untranslated_data()
             else:
                 self._element.remove(to.element)
-                del self._translatable_tenant_data_dict[key]
+                del_list.append(self._translatable_tenant_data_dict[key])
+
+        for i in del_list:
+            del i
         return
 
     def get_translated_items(self):
@@ -91,7 +96,8 @@ class Tenant(object):
             :return: 
         """
         # Will throw KeyError if it is not found (either object or instance)
-        assert type(translation) == Translatable_Tenant_Data, "Invalid parameter type passed to add_translation"
+        assert type(translation) == Translated_Value_for_Instance_Data, "Invalid parameter type passed to add_translation {}".format(type(translation))
+        #assert type(translation) == Translatable_Tenant_Data, "Invalid parameter type passed to add_translation {}".format(type(translation))
         destination_trans_obj = self._translatable_tenant_data_dict[translation.parent_key]
         destination_trans_obj.update_translation(translation)
         return

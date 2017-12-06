@@ -99,12 +99,15 @@ class Translatable_Tenant_Data(object):
         return
 
     def remove_untranslated_data(self):
+        del_list = []
         for key, d in self._translated_value_for_instance_data_dict.items():
             if not d.has_translation:
                 self._element.remove(d.element)
                 if d.is_WID:
                     del self._WID_dict[d.key]
-                del self._translated_value_for_instance_data_dict[key]
+                del_list.append(key)
+        for k in del_list:
+            del self._translated_value_for_instance_data_dict[k]
         return
 
     def get_translated_items(self):

@@ -84,8 +84,9 @@ def parse_command_line(cmd_args):
 
     # Utility mode for combining multiple xml files into a single file
     combine_parser = sub.add_parser("combine")
-    combine_parser.add_argument("Files to combine", nargs="+", help=("Provide a list of xml files to be combined into a "
+    combine_parser.add_argument("flist", nargs="+", help=("Provide a list of xml files to be combined into a "
             "single xml file. Generally used when combining generated files from different languages"))
+    combine_parser.add_argument("-output-file-name", default="combined_translated_file.xml", help="Name of output file. Default is 'combined_translated_file.xml'")
     combine_parser.set_defaults(func=combine)
 
     # Utility mode for creating iLoad friendly csv files from xml files
@@ -117,8 +118,8 @@ def parse_command_line(cmd_args):
 """
     Convenience functions
 """
-def p(e): return etree.tostring(e, pretty_print=True)
-def pr(e): return etree.tostring(e, pretty_print=False)
+def p(e): return u"{}".format(etree.tostring(e, pretty_print=True))
+def pr(e): return u"{}".format(etree.tostring(e, pretty_print=False))
 def status(msg):
     global start_time
     global last_update_time
@@ -130,7 +131,7 @@ def status(msg):
     last_update_time = now
     return
 
-def combine(flist, output_file_name):
+def combine(args):
     """
         Combines multiple xml files into one. It is designed to combine mulitple language files into a single
         file for loading.
@@ -138,20 +139,21 @@ def combine(flist, output_file_name):
     :param output_file_name:
     :return:
     """
-    filename = output_file_name
+    info("args {}".format(args))
+    filename = args.output_file_name
     #Translatable_Tenant_Data_Data
     # First we open the first file and use it as a base, then iterate through the rest
 
-    base_tree = etree.parse(flist[0])
+    base_tree = etree.parse(args.flist[0])
     base_root = base_tree.getroot()
-    for f in flist[1:]:
+    for f in args.flist[1:]:
         tree = etree.parse(f)
         root = tree.getroot()
         data = root.find('{urn:com.workday/bsvc}Translatable_Tenant_Data_Data')
         base_root.append(data)
     base_tree.write(filename)
     name = "{}.PRETTY{}".format(os.path.splitext(filename)[0],os.path.splitext(filename)[1])
-    with open(name, "w") as f:
+    with open(name, "w", encoding="utf-16") as f:
         f.write(p(base_root))
     return
 
@@ -545,14 +547,14 @@ def process(args):
     if not fname:
         fname = "{}-WITH_TRANSLATIONS.xml".format(os.path.splitext(args.dest_file)[0])
 
-    with open(fname, "w") as f:
+    with open(fname, "w", encoding="utf_8") as f:
         status("Writing output file: {}".format(fname))
-        f.write(etree.tostring(dest_tenant.tree.getroot()))
+        f.write(u"{}".format(etree.tostring(dest_tenant.tree.getroot())))
     if args.pretty:
         pretty_fname = "{}.PRETTY{}".format(os.path.splitext(fname)[0],os.path.splitext(fname)[1])
-        with open(pretty_fname, "w") as f:
+        with open(pretty_fname, "w", encoding="utf_8") as f:
             status("Writing pretty output file: {}".format(pretty_fname))
-            f.write(etree.tostring(dest_tenant.tree.getroot(), pretty_print=True))
+            f.write(u"{}".format(etree.tostring(dest_tenant.tree.getroot(), pretty_print=True)))
     print(dest_tenant.get_stats())
     return
 

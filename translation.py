@@ -1,5 +1,5 @@
 from collections import defaultdict
-from .__init__ import debug
+from .__init__ import debug, error
 
 class Base(object):
     def delete(self): pass
@@ -145,12 +145,18 @@ class Translatable_Item(Indexable_Upsert):
             self._my_translations = []
             self._add_to_index("by_class_and_name", (class_name, name))
             self._namespace = namespace
+            self._source_sequences = defaultdict([])
         if namespace:
             self._namespace = namespace
         if type(source_name_or_obj) == str:
             source = Translation_Source(source_name_or_obj, self)
         elif type(source_name_or_obj) == Translation_Source:
             source = source_name_or_obj
+        else:
+            raise TypeError("source must be string or of type source. Type is {}".format(type(source_name_or_obj)))
+        if source in self._source_sequences:
+            error("Item {} is a duplicate in source {}".format(self, source))
+        self._source_sequences[source].append(source.next_seq)
         self._add_to_index("by_source_class_name_and_name", (source, class_name, name))
         self.add_source(source)
         self.add_source_key(source, ref_id_type, ref_id, parent_ref_id_type, parent_ref_id)
@@ -236,6 +242,7 @@ class Translation_Source(Indexable_Upsert):
             self._my_translatable_items = []
             self._my_source_language_translated_values = []
             self._namespace = None
+            self._next_seq = 0
         if translatable_item:
             assert type(translatable_item) == Translatable_Item, "Invalid type passed for translatable item {}".format(type(translation))
             self._my_translatable_items.append(translatable_item)
@@ -251,6 +258,10 @@ class Translation_Source(Indexable_Upsert):
     def add_translatable_item(self, translatable_item):
         self._my_translatable_items.append(translatable_item)
         return
+
+    def next_seq(self):
+        self._next_seq += 1
+        return self._next_seq
 
     @property
     def namespace(self): return self._namespace
