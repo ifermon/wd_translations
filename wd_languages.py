@@ -2,18 +2,18 @@
 # -*- coding: utf-8 -*-
 
 #
-# Generated Fri Nov 10 17:16:13 2017 by generateDS.py version 2.28.2.
-# Python 3.5.2 (v3.5.2:4def2a2901a5, Jun 26 2016, 10:47:25)  [GCC 4.2.1 (Apple Inc. build 5666) (dot 3)]
+# Generated Sat Dec  9 16:00:38 2017 by generateDS.py version 2.29.0.
+# Python 2.7.13 (default, Dec 18 2016, 05:36:03)  [GCC 4.2.1 Compatible Apple LLVM 8.0.0 (clang-800.0.38)]
 #
 # Command line options:
+#   ('-a', 'wd:')
 #   ('-o', 'wd_languages.py')
-#   ('-s', 'wd_language_subs.py')
 #
 # Command line arguments:
 #   wd_languages.xsd
 #
 # Command line:
-#   generateDS.py -o "wd_languages.py" -s "wd_language_subs.py" wd_languages.xsd
+#   ./generateDS-new.py -a "wd:" -o "wd_languages.py" wd_languages.xsd
 #
 # Current working directory (os.getcwd()):
 #   wd_translations
@@ -434,7 +434,7 @@ except ImportError as exp:
 # Globals
 #
 
-ExternalEncoding = 'utf-8'
+ExternalEncoding = 'ascii'
 Tag_pattern_ = re_.compile(r'({.*})?(.*)')
 String_cleanup_pat_ = re_.compile(r"[\n\r\s]+")
 Namespace_extract_pat_ = re_.compile(r'{(.*)}(.*)')
@@ -707,11 +707,11 @@ def _cast(typ, value):
 class Instance_IDType(GeneratedsSuper):
     subclass = None
     superclass = None
-    def __init__(self, parent_id=None, parent_type=None, type_=None, valueOf_=None):
+    def __init__(self, wd_parent_id=None, wd_parent_type=None, wd_type=None, valueOf_=None):
         self.original_tagname_ = None
-        self.parent_id = _cast(None, parent_id)
-        self.parent_type = _cast(None, parent_type)
-        self.type_ = _cast(None, type_)
+        self.wd_parent_id = _cast(None, wd_parent_id)
+        self.wd_parent_type = _cast(None, wd_parent_type)
+        self.wd_type = _cast(None, wd_type)
         self.valueOf_ = valueOf_
     def factory(*args_, **kwargs_):
         if CurrentSubclassModule_ is not None:
@@ -724,12 +724,12 @@ class Instance_IDType(GeneratedsSuper):
         else:
             return Instance_IDType(*args_, **kwargs_)
     factory = staticmethod(factory)
-    def get_parent_id(self): return self.parent_id
-    def set_parent_id(self, parent_id): self.parent_id = parent_id
-    def get_parent_type(self): return self.parent_type
-    def set_parent_type(self, parent_type): self.parent_type = parent_type
-    def get_type(self): return self.type_
-    def set_type(self, type_): self.type_ = type_
+    def get_wd_parent_id(self): return self.wd_parent_id
+    def set_wd_parent_id(self, wd_parent_id): self.wd_parent_id = wd_parent_id
+    def get_wd_parent_type(self): return self.wd_parent_type
+    def set_wd_parent_type(self, wd_parent_type): self.wd_parent_type = wd_parent_type
+    def get_wd_type(self): return self.wd_type
+    def set_wd_type(self, wd_type): self.wd_type = wd_type
     def get_valueOf_(self): return self.valueOf_
     def set_valueOf_(self, valueOf_): self.valueOf_ = valueOf_
     def hasContent_(self):
@@ -750,7 +750,6 @@ class Instance_IDType(GeneratedsSuper):
         if self.original_tagname_ is not None:
             name_ = self.original_tagname_
         showIndent(outfile, level, pretty_print)
-        namespacedef_ = None
         outfile.write('<%s%s%s' % (namespace_, name_, namespacedef_ and ' ' + namespacedef_ or '', ))
         already_processed = set()
         self.exportAttributes(outfile, level, already_processed, namespace_, name_='Instance_IDType')
@@ -762,15 +761,15 @@ class Instance_IDType(GeneratedsSuper):
         else:
             outfile.write('/>%s' % (eol_, ))
     def exportAttributes(self, outfile, level, already_processed, namespace_='wd:', name_='Instance_IDType'):
-        if self.parent_id and 'parent_id' not in already_processed:
-            already_processed.add('parent_id')
-            outfile.write(' %sparent_id=%s' % (namespace_, self.gds_encode(self.gds_format_string(quote_attrib(self.parent_id), input_name='parent_id')), ))
-        if self.parent_type and 'parent_type' not in already_processed:
-            already_processed.add('parent_type')
-            outfile.write(' %sparent_type=%s' % (namespace_, self.gds_encode(self.gds_format_string(quote_attrib(self.parent_type), input_name='parent_type')), ))
-        if self.type_ and 'type_' not in already_processed:
-            already_processed.add('type_')
-            outfile.write(' %stype=%s' % (namespace_, self.gds_encode(self.gds_format_string(quote_attrib(self.type_), input_name='type')), ))
+        if self.wd_parent_id is not None and 'wd_parent_id' not in already_processed:
+            already_processed.add('wd_parent_id')
+            outfile.write(' wd:parent_id=%s' % (self.gds_encode(self.gds_format_string(quote_attrib(self.wd_parent_id), input_name='wd:parent_id')), ))
+        if self.wd_parent_type is not None and 'wd_parent_type' not in already_processed:
+            already_processed.add('wd_parent_type')
+            outfile.write(' wd:parent_type=%s' % (self.gds_encode(self.gds_format_string(quote_attrib(self.wd_parent_type), input_name='wd:parent_type')), ))
+        if self.wd_type is not None and 'wd_type' not in already_processed:
+            already_processed.add('wd_type')
+            outfile.write(' wd:type=%s' % (self.gds_encode(self.gds_format_string(quote_attrib(self.wd_type), input_name='wd:type')), ))
     def exportChildren(self, outfile, level, namespace_='wd:', name_='Instance_IDType', fromsubclass_=False, pretty_print=True):
         pass
     def build(self, node):
@@ -782,18 +781,18 @@ class Instance_IDType(GeneratedsSuper):
             self.buildChildren(child, node, nodeName_)
         return self
     def buildAttributes(self, node, attrs, already_processed):
-        value = find_attr_value_('parent_id', node)
-        if value is not None and 'parent_id' not in already_processed:
-            already_processed.add('parent_id')
-            self.parent_id = value
-        value = find_attr_value_('parent_type', node)
-        if value is not None and 'parent_type' not in already_processed:
-            already_processed.add('parent_type')
-            self.parent_type = value
-        value = find_attr_value_('type', node)
-        if value is not None and 'type' not in already_processed:
-            already_processed.add('type')
-            self.type_ = value
+        value = find_attr_value_('wd:parent_id', node)
+        if value is not None and 'wd:parent_id' not in already_processed:
+            already_processed.add('wd:parent_id')
+            self.wd_parent_id = value
+        value = find_attr_value_('wd:parent_type', node)
+        if value is not None and 'wd:parent_type' not in already_processed:
+            already_processed.add('wd:parent_type')
+            self.wd_parent_type = value
+        value = find_attr_value_('wd:type', node)
+        if value is not None and 'wd:type' not in already_processed:
+            already_processed.add('wd:type')
+            self.wd_type = value
     def buildChildren(self, child_, node, nodeName_, fromsubclass_=False):
         pass
 # end class Instance_IDType
@@ -890,12 +889,12 @@ class InstanceObjectType(GeneratedsSuper):
 class rootType(GeneratedsSuper):
     subclass = None
     superclass = None
-    def __init__(self, Put_Translatable_Tenant_Data_Request=None):
+    def __init__(self, Translatable_Tenant_Data_Data=None):
         self.original_tagname_ = None
-        if Put_Translatable_Tenant_Data_Request is None:
-            self.Put_Translatable_Tenant_Data_Request = []
+        if Translatable_Tenant_Data_Data is None:
+            self.Translatable_Tenant_Data_Data = []
         else:
-            self.Put_Translatable_Tenant_Data_Request = Put_Translatable_Tenant_Data_Request
+            self.Translatable_Tenant_Data_Data = Translatable_Tenant_Data_Data
     def factory(*args_, **kwargs_):
         if CurrentSubclassModule_ is not None:
             subclass = getSubclassFromModule_(
@@ -906,6 +905,86 @@ class rootType(GeneratedsSuper):
             return rootType.subclass(*args_, **kwargs_)
         else:
             return rootType(*args_, **kwargs_)
+    factory = staticmethod(factory)
+    def get_Translatable_Tenant_Data_Data(self): return self.Translatable_Tenant_Data_Data
+    def set_Translatable_Tenant_Data_Data(self, Translatable_Tenant_Data_Data): self.Translatable_Tenant_Data_Data = Translatable_Tenant_Data_Data
+    def add_Translatable_Tenant_Data_Data(self, value): self.Translatable_Tenant_Data_Data.append(value)
+    def insert_Translatable_Tenant_Data_Data_at(self, index, value): self.Translatable_Tenant_Data_Data.insert(index, value)
+    def replace_Translatable_Tenant_Data_Data_at(self, index, value): self.Translatable_Tenant_Data_Data[index] = value
+    def hasContent_(self):
+        if (
+            self.Translatable_Tenant_Data_Data
+        ):
+            return True
+        else:
+            return False
+    def export(self, outfile, level, namespace_='wd:', name_='rootType', namespacedef_='xmlns:wd="urn:com.workday/bsvc"', pretty_print=True):
+        imported_ns_def_ = GenerateDSNamespaceDefs_.get('rootType')
+        if imported_ns_def_ is not None:
+            namespacedef_ = imported_ns_def_
+        if pretty_print:
+            eol_ = '\n'
+        else:
+            eol_ = ''
+        if self.original_tagname_ is not None:
+            name_ = self.original_tagname_
+        showIndent(outfile, level, pretty_print)
+        outfile.write('<%s%s%s' % (namespace_, name_, namespacedef_ and ' ' + namespacedef_ or '', ))
+        already_processed = set()
+        self.exportAttributes(outfile, level, already_processed, namespace_, name_='rootType')
+        if self.hasContent_():
+            outfile.write('>%s' % (eol_, ))
+            self.exportChildren(outfile, level + 1, namespace_='wd:', name_='rootType', pretty_print=pretty_print)
+            showIndent(outfile, level, pretty_print)
+            outfile.write('</%s%s>%s' % (namespace_, name_, eol_))
+        else:
+            outfile.write('/>%s' % (eol_, ))
+    def exportAttributes(self, outfile, level, already_processed, namespace_='wd:', name_='rootType'):
+        pass
+    def exportChildren(self, outfile, level, namespace_='wd:', name_='rootType', fromsubclass_=False, pretty_print=True):
+        if pretty_print:
+            eol_ = '\n'
+        else:
+            eol_ = ''
+        for Translatable_Tenant_Data_Data_ in self.Translatable_Tenant_Data_Data:
+            Translatable_Tenant_Data_Data_.export(outfile, level, namespace_, name_='Translatable_Tenant_Data_Data', pretty_print=pretty_print)
+    def build(self, node):
+        already_processed = set()
+        self.buildAttributes(node, node.attrib, already_processed)
+        for child in node:
+            nodeName_ = Tag_pattern_.match(child.tag).groups()[-1]
+            self.buildChildren(child, node, nodeName_)
+        return self
+    def buildAttributes(self, node, attrs, already_processed):
+        pass
+    def buildChildren(self, child_, node, nodeName_, fromsubclass_=False):
+        if nodeName_ == 'Translatable_Tenant_Data_Data':
+            obj_ = Translatable_Class_Attribute_DataType.factory()
+            obj_.build(child_)
+            self.Translatable_Tenant_Data_Data.append(obj_)
+            obj_.original_tagname_ = 'Translatable_Tenant_Data_Data'
+# end class rootType
+
+
+class rootTypeAPI(GeneratedsSuper):
+    subclass = None
+    superclass = None
+    def __init__(self, Put_Translatable_Tenant_Data_Request=None):
+        self.original_tagname_ = None
+        if Put_Translatable_Tenant_Data_Request is None:
+            self.Put_Translatable_Tenant_Data_Request = []
+        else:
+            self.Put_Translatable_Tenant_Data_Request = Put_Translatable_Tenant_Data_Request
+    def factory(*args_, **kwargs_):
+        if CurrentSubclassModule_ is not None:
+            subclass = getSubclassFromModule_(
+                CurrentSubclassModule_, rootTypeAPI)
+            if subclass is not None:
+                return subclass(*args_, **kwargs_)
+        if rootTypeAPI.subclass:
+            return rootTypeAPI.subclass(*args_, **kwargs_)
+        else:
+            return rootTypeAPI(*args_, **kwargs_)
     factory = staticmethod(factory)
     def get_Put_Translatable_Tenant_Data_Request(self): return self.Put_Translatable_Tenant_Data_Request
     def set_Put_Translatable_Tenant_Data_Request(self, Put_Translatable_Tenant_Data_Request): self.Put_Translatable_Tenant_Data_Request = Put_Translatable_Tenant_Data_Request
@@ -919,8 +998,8 @@ class rootType(GeneratedsSuper):
             return True
         else:
             return False
-    def export(self, outfile, level, namespace_='wd:', name_='root', namespacedef_='xmlns:wd="urn:com.workday/bsvc"', pretty_print=True):
-        imported_ns_def_ = GenerateDSNamespaceDefs_.get('rootType')
+    def export(self, outfile, level, namespace_='wd:', name_='rootTypeAPI', namespacedef_='xmlns:wd="urn:com.workday/bsvc"', pretty_print=True):
+        imported_ns_def_ = GenerateDSNamespaceDefs_.get('rootTypeAPI')
         if imported_ns_def_ is not None:
             namespacedef_ = imported_ns_def_
         if pretty_print:
@@ -930,19 +1009,19 @@ class rootType(GeneratedsSuper):
         if self.original_tagname_ is not None:
             name_ = self.original_tagname_
         showIndent(outfile, level, pretty_print)
-        outfile.write('<%s%s%s wd:version="v29.0"' % (namespace_, name_, namespacedef_ and ' ' + namespacedef_ or '', ))
+        outfile.write('<%s%s%s' % (namespace_, name_, namespacedef_ and ' ' + namespacedef_ or '', ))
         already_processed = set()
-        self.exportAttributes(outfile, level, already_processed, namespace_, name_='rootType')
+        self.exportAttributes(outfile, level, already_processed, namespace_, name_='rootTypeAPI')
         if self.hasContent_():
             outfile.write('>%s' % (eol_, ))
-            self.exportChildren(outfile, level + 1, namespace_='wd:', name_='root', pretty_print=pretty_print)
+            self.exportChildren(outfile, level + 1, namespace_='wd:', name_='rootTypeAPI', pretty_print=pretty_print)
             showIndent(outfile, level, pretty_print)
             outfile.write('</%s%s>%s' % (namespace_, name_, eol_))
         else:
             outfile.write('/>%s' % (eol_, ))
-    def exportAttributes(self, outfile, level, already_processed, namespace_='wd:', name_='rootType'):
+    def exportAttributes(self, outfile, level, already_processed, namespace_='wd:', name_='rootTypeAPI'):
         pass
-    def exportChildren(self, outfile, level, namespace_='wd:', name_='rootType', fromsubclass_=False, pretty_print=True):
+    def exportChildren(self, outfile, level, namespace_='wd:', name_='rootTypeAPI', fromsubclass_=False, pretty_print=True):
         if pretty_print:
             eol_ = '\n'
         else:
@@ -964,7 +1043,7 @@ class rootType(GeneratedsSuper):
             obj_.build(child_)
             self.Put_Translatable_Tenant_Data_Request.append(obj_)
             obj_.original_tagname_ = 'Put_Translatable_Tenant_Data_Request'
-# end class rootType
+# end class rootTypeAPI
 
 
 class Translatable_Class_Attribute_DataType(GeneratedsSuper):
@@ -1044,7 +1123,7 @@ class Translatable_Class_Attribute_DataType(GeneratedsSuper):
             self.User_Language_Reference.export(outfile, level, namespace_, name_='User_Language_Reference', pretty_print=pretty_print)
         if self.Class_Name is not None:
             showIndent(outfile, level, pretty_print)
-            outfile.write('<%sClass_Name>%s</%sClass_Name>%s' % (namespace_, self.gds_encode(self.gds_format_string(quote_xml(self.Class_Name), input_name='Class_Name')), namespace_, eol_))
+            outfile.write('<wd:Class_Name>%s</wd:Class_Name>%s' % (self.gds_encode(self.gds_format_string(quote_xml(self.Class_Name), input_name='Class_Name')), eol_))
         if self.Attribute_Reference is not None:
             self.Attribute_Reference.export(outfile, level, namespace_, name_='Attribute_Reference', pretty_print=pretty_print)
         for Translated_Value_for_Instance_Data_ in self.Translated_Value_for_Instance_Data:
@@ -1162,16 +1241,16 @@ class Translated_Value_for_Instance_DataType(GeneratedsSuper):
             self.Instance_Reference.export(outfile, level, namespace_, name_='Instance_Reference', pretty_print=pretty_print)
         if self.Base_Value is not None:
             showIndent(outfile, level, pretty_print)
-            outfile.write('<%sBase_Value>%s</%sBase_Value>%s' % (namespace_, self.gds_encode(self.gds_format_string(quote_xml(self.Base_Value), input_name='Base_Value')), namespace_, eol_))
+            outfile.write('<wd:Base_Value>%s</wd:Base_Value>%s' % (self.gds_encode(self.gds_format_string(quote_xml(self.Base_Value), input_name='Base_Value')), eol_))
         if self.Translated_Value is not None:
             showIndent(outfile, level, pretty_print)
-            outfile.write('<%sTranslated_Value>%s</%sTranslated_Value>%s' % (namespace_, self.gds_encode(self.gds_format_string(quote_xml(self.Translated_Value), input_name='Translated_Value')), namespace_, eol_))
+            outfile.write('<wd:Translated_Value>%s</wd:Translated_Value>%s' % (self.gds_encode(self.gds_format_string(quote_xml(self.Translated_Value), input_name='Translated_Value')), eol_))
         if self.Rich_Base_Value is not None:
             showIndent(outfile, level, pretty_print)
-            outfile.write('<%sRich_Base_Value>%s</%sRich_Base_Value>%s' % (namespace_, self.gds_encode(self.gds_format_string(quote_xml(self.Rich_Base_Value), input_name='Rich_Base_Value')), namespace_, eol_))
+            outfile.write('<wd:Rich_Base_Value>%s</wd:Rich_Base_Value>%s' % (self.gds_encode(self.gds_format_string(quote_xml(self.Rich_Base_Value), input_name='Rich_Base_Value')), eol_))
         if self.Translated_Rich_Value is not None:
             showIndent(outfile, level, pretty_print)
-            outfile.write('<%sTranslated_Rich_Value>%s</%sTranslated_Rich_Value>%s' % (namespace_, self.gds_encode(self.gds_format_string(quote_xml(self.Translated_Rich_Value), input_name='Translated_Rich_Value')), namespace_, eol_))
+            outfile.write('<wd:Translated_Rich_Value>%s</wd:Translated_Rich_Value>%s' % (self.gds_encode(self.gds_format_string(quote_xml(self.Translated_Rich_Value), input_name='Translated_Rich_Value')), eol_))
     def build(self, node):
         already_processed = set()
         self.buildAttributes(node, node.attrib, already_processed)
@@ -1271,10 +1350,10 @@ class Attribute_ReferenceType(GeneratedsSuper):
             eol_ = ''
         if self.Name is not None:
             showIndent(outfile, level, pretty_print)
-            outfile.write('<%sName>%s</%sName>%s' % (namespace_, self.gds_encode(self.gds_format_string(quote_xml(self.Name), input_name='Name')), namespace_, eol_))
+            outfile.write('<wd:Name>%s</wd:Name>%s' % (self.gds_encode(self.gds_format_string(quote_xml(self.Name), input_name='Name')), eol_))
         if self.Namespace_URI is not None:
             showIndent(outfile, level, pretty_print)
-            outfile.write('<%sNamespace_URI>%s</%sNamespace_URI>%s' % (namespace_, self.gds_encode(self.gds_format_string(quote_xml(self.Namespace_URI), input_name='Namespace_URI')), namespace_, eol_))
+            outfile.write('<wd:Namespace_URI>%s</wd:Namespace_URI>%s' % (self.gds_encode(self.gds_format_string(quote_xml(self.Namespace_URI), input_name='Namespace_URI')), eol_))
     def build(self, node):
         already_processed = set()
         self.buildAttributes(node, node.attrib, already_processed)
@@ -1332,7 +1411,6 @@ class Put_Translatable_Tenant_Data_RequestType(GeneratedsSuper):
         imported_ns_def_ = GenerateDSNamespaceDefs_.get('Put_Translatable_Tenant_Data_RequestType')
         if imported_ns_def_ is not None:
             namespacedef_ = imported_ns_def_
-        namespacedef_ = None
         if pretty_print:
             eol_ = '\n'
         else:
@@ -1340,18 +1418,16 @@ class Put_Translatable_Tenant_Data_RequestType(GeneratedsSuper):
         if self.original_tagname_ is not None:
             name_ = self.original_tagname_
         showIndent(outfile, level, pretty_print)
-        self.exportChildren(outfile, level + 1, namespace_='wd:', name_='Put_Translatable_Tenant_Data_RequestType', pretty_print=pretty_print)
-        if False:
-            outfile.write('<%s%s%s' % (namespace_, name_, namespacedef_ and ' ' + namespacedef_ or '', ))
-            already_processed = set()
-            self.exportAttributes(outfile, level, already_processed, namespace_, name_='Put_Translatable_Tenant_Data_RequestType')
-            if self.hasContent_():
-                outfile.write('>%s' % (eol_, ))
-                self.exportChildren(outfile, level + 1, namespace_='wd:', name_='Put_Translatable_Tenant_Data_RequestType', pretty_print=pretty_print)
-                showIndent(outfile, level, pretty_print)
-                outfile.write('</%s%s>%s' % (namespace_, name_, eol_))
-            else:
-                outfile.write('/>%s' % (eol_, ))
+        outfile.write('<%s%s%s' % (namespace_, name_, namespacedef_ and ' ' + namespacedef_ or '', ))
+        already_processed = set()
+        self.exportAttributes(outfile, level, already_processed, namespace_, name_='Put_Translatable_Tenant_Data_RequestType')
+        if self.hasContent_():
+            outfile.write('>%s' % (eol_, ))
+            self.exportChildren(outfile, level + 1, namespace_='wd:', name_='Put_Translatable_Tenant_Data_RequestType', pretty_print=pretty_print)
+            showIndent(outfile, level, pretty_print)
+            outfile.write('</%s%s>%s' % (namespace_, name_, eol_))
+        else:
+            outfile.write('/>%s' % (eol_, ))
     def exportAttributes(self, outfile, level, already_processed, namespace_='wd:', name_='Put_Translatable_Tenant_Data_RequestType'):
         pass
     def exportChildren(self, outfile, level, namespace_='wd:', name_='Put_Translatable_Tenant_Data_RequestType', fromsubclass_=False, pretty_print=True):
@@ -1477,9 +1553,9 @@ class User_LanguageObjectIDType(GeneratedsSuper):
     multiple "ID" but only a single "ID" per "type"."""
     subclass = None
     superclass = None
-    def __init__(self, type_=None, valueOf_=None):
+    def __init__(self, wd_type=None, valueOf_=None):
         self.original_tagname_ = None
-        self.type_ = _cast(None, type_)
+        self.wd_type = _cast(None, wd_type)
         self.valueOf_ = valueOf_
     def factory(*args_, **kwargs_):
         if CurrentSubclassModule_ is not None:
@@ -1492,8 +1568,8 @@ class User_LanguageObjectIDType(GeneratedsSuper):
         else:
             return User_LanguageObjectIDType(*args_, **kwargs_)
     factory = staticmethod(factory)
-    def get_type(self): return self.type_
-    def set_type(self, type_): self.type_ = type_
+    def get_wd_type(self): return self.wd_type
+    def set_wd_type(self, wd_type): self.wd_type = wd_type
     def get_valueOf_(self): return self.valueOf_
     def set_valueOf_(self, valueOf_): self.valueOf_ = valueOf_
     def hasContent_(self):
@@ -1525,9 +1601,9 @@ class User_LanguageObjectIDType(GeneratedsSuper):
         else:
             outfile.write('/>%s' % (eol_, ))
     def exportAttributes(self, outfile, level, already_processed, namespace_='wd:', name_='User_LanguageObjectIDType'):
-        if self.type_ and 'type_' not in already_processed:
-            already_processed.add('type_')
-            outfile.write(' %stype=%s' % (namespace_, quote_attrib(self.type_), ))
+        if self.wd_type is not None and 'wd_type' not in already_processed:
+            already_processed.add('wd_type')
+            outfile.write(' wd:type=%s' % (quote_attrib(self.wd_type), ))
     def exportChildren(self, outfile, level, namespace_='wd:', name_='User_LanguageObjectIDType', fromsubclass_=False, pretty_print=True):
         pass
     def build(self, node):
@@ -1539,10 +1615,10 @@ class User_LanguageObjectIDType(GeneratedsSuper):
             self.buildChildren(child, node, nodeName_)
         return self
     def buildAttributes(self, node, attrs, already_processed):
-        value = find_attr_value_('type', node)
-        if value is not None and 'type' not in already_processed:
-            already_processed.add('type')
-            self.type_ = value
+        value = find_attr_value_('wd:type', node)
+        if value is not None and 'wd:type' not in already_processed:
+            already_processed.add('wd:type')
+            self.wd_type = value
     def buildChildren(self, child_, node, nodeName_, fromsubclass_=False):
         pass
 # end class User_LanguageObjectIDType
@@ -1661,7 +1737,8 @@ def parseLiteral(inFileName, silence=False):
     return rootObj
 
 
-def main(args):
+def main():
+    args = sys.argv[1:]
     if len(args) == 1:
         parse(args[0])
     else:
@@ -1670,7 +1747,7 @@ def main(args):
 
 if __name__ == '__main__':
     #import pdb; pdb.set_trace()
-    main(sys.argv[1:])
+    main()
 
 
 __all__ = [
@@ -1682,5 +1759,6 @@ __all__ = [
     "Translated_Value_for_Instance_DataType",
     "User_LanguageObjectIDType",
     "User_LanguageObjectType",
-    "rootType"
+    "rootType",
+    "rootTypeAPI"
 ]

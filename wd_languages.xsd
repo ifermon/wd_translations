@@ -1,1 +1,173 @@
-<?xml version='1.0' encoding='UTF-8'?><xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:wd="urn:com.workday/bsvc" xmlns:nyw="urn:com.netyourwork/aod" elementFormDefault="qualified" attributeFormDefault="qualified" targetNamespace="urn:com.workday/bsvc"><xsd:element name="root" type="wd:rootType"/><xsd:simpleType name="RichText"><xsd:restriction base="xsd:string"/></xsd:simpleType><xsd:simpleType name="User_LanguageReferenceEnumeration"><xsd:restriction base="xsd:string"><xsd:annotation><xsd:appinfo><wd:enumeration value="WID"/><wd:enumeration value="User_Language_ID"/></xsd:appinfo></xsd:annotation></xsd:restriction></xsd:simpleType><xsd:complexType name="Instance_IDType"><xsd:simpleContent><xsd:extension base="xsd:string"><xsd:attribute name="parent_id" type="xsd:string"/><xsd:attribute name="parent_type" type="xsd:string"/><xsd:attribute name="type" type="xsd:string"/></xsd:extension></xsd:simpleContent></xsd:complexType><xsd:complexType name="InstanceObjectType"><xsd:annotation wd:Is_Reference_ID="1"/><xsd:sequence><xsd:element name="ID" type="wd:Instance_IDType" minOccurs="0" maxOccurs="unbounded"/></xsd:sequence><xsd:attribute name="Descriptor" type="xsd:string"/></xsd:complexType><xsd:complexType name="rootType"><xsd:sequence><xsd:element name="Put_Translatable_Tenant_Data_Request" type="wd:Put_Translatable_Tenant_Data_RequestType" minOccurs="0" maxOccurs="unbounded"/></xsd:sequence></xsd:complexType><xsd:complexType name="Translatable_Class_Attribute_DataType"><xsd:annotation><xsd:documentation>Parameters that specify the context of the translatation tasks.</xsd:documentation><xsd:appinfo><wd:Validation><wd:Validation_Message>Attribute is not translatable for specified Class.</wd:Validation_Message></wd:Validation><wd:Validation><wd:Validation_Message>Invalid Attribute Reference.</wd:Validation_Message></wd:Validation><wd:Validation><wd:Validation_Message>Invalid Class Name.</wd:Validation_Message></wd:Validation><wd:Validation><wd:Validation_Message>Class is not translatable.</wd:Validation_Message></wd:Validation></xsd:appinfo></xsd:annotation><xsd:sequence><xsd:element name="User_Language_Reference" type="wd:User_LanguageObjectType" minOccurs="0"><xsd:annotation><xsd:documentation>Target User Language for translation.</xsd:documentation></xsd:annotation></xsd:element><xsd:element name="Class_Name" type="xsd:string" maxOccurs="1"><xsd:annotation><xsd:documentation>Name of the object.</xsd:documentation></xsd:annotation></xsd:element><xsd:element name="Attribute_Reference" type="wd:Attribute_ReferenceType"><xsd:annotation><xsd:documentation>Attribute information of the object.</xsd:documentation></xsd:annotation></xsd:element><xsd:element name="Translated_Value_for_Instance_Data" type="wd:Translated_Value_for_Instance_DataType" minOccurs="0" maxOccurs="unbounded"><xsd:annotation><xsd:documentation>Translatable data in base language and target languages.</xsd:documentation></xsd:annotation></xsd:element></xsd:sequence></xsd:complexType><xsd:complexType name="Translated_Value_for_Instance_DataType"><xsd:annotation><xsd:documentation>Translatable data in base language and target languages.</xsd:documentation><xsd:appinfo><wd:Validation><wd:Validation_Message>Instance Reference is not valid. Only tenanted instances can be uploaded for translation.</wd:Validation_Message></wd:Validation></xsd:appinfo></xsd:annotation><xsd:sequence><xsd:element name="Instance_Reference" type="wd:InstanceObjectType"><xsd:annotation><xsd:documentation>A unique identifier for an instance of an object.</xsd:documentation></xsd:annotation></xsd:element><xsd:element name="Base_Value" type="xsd:string" minOccurs="0" maxOccurs="1"><xsd:annotation><xsd:documentation>Plain text base value.</xsd:documentation></xsd:annotation></xsd:element><xsd:element name="Translated_Value" type="xsd:string" minOccurs="0" maxOccurs="1"><xsd:annotation><xsd:documentation>Enter the translated value of the instance in the corresponding User Language and in plain text.</xsd:documentation></xsd:annotation></xsd:element><xsd:element name="Rich_Base_Value" type="wd:RichText" minOccurs="0" maxOccurs="1"><xsd:annotation><xsd:documentation>Rich text base value.</xsd:documentation></xsd:annotation></xsd:element><xsd:element name="Translated_Rich_Value" type="wd:RichText" minOccurs="0" maxOccurs="1"><xsd:annotation><xsd:documentation>Enter the translated value of the instance in the corresponding User Language and in rich text.</xsd:documentation></xsd:annotation></xsd:element></xsd:sequence></xsd:complexType><xsd:complexType name="Attribute_ReferenceType"><xsd:annotation><xsd:documentation>Attribute information of the object.</xsd:documentation><xsd:appinfo><wd:Validation><wd:Validation_Message>Invalid Namespace URI.</wd:Validation_Message></wd:Validation></xsd:appinfo></xsd:annotation><xsd:sequence><xsd:element name="Name" type="xsd:string" maxOccurs="1"><xsd:annotation><xsd:documentation>Attribute name of the object.</xsd:documentation></xsd:annotation></xsd:element><xsd:element name="Namespace_URI" type="xsd:string" minOccurs="0" maxOccurs="1"><xsd:annotation><xsd:documentation>Workday internal use only. Customers should not populate this column.</xsd:documentation></xsd:annotation></xsd:element></xsd:sequence></xsd:complexType><xsd:complexType name="Put_Translatable_Tenant_Data_RequestType"><xsd:sequence><xsd:element name="Translatable_Tenant_Data_Data" type="wd:Translatable_Class_Attribute_DataType" minOccurs="0" maxOccurs="unbounded"/></xsd:sequence></xsd:complexType><xsd:complexType name="User_LanguageObjectType"><xsd:annotation wd:Is_Reference_ID="1"/><xsd:sequence><xsd:element name="ID" type="wd:User_LanguageObjectIDType" minOccurs="0" maxOccurs="unbounded"/></xsd:sequence><xsd:attribute name="Descriptor" type="xsd:string"><xsd:annotation><xsd:documentation>Display information used to describe an instance of an object. This 'optional' information is for outbound descriptive purposes only and is not processed on inbound Workday Web Services requests.</xsd:documentation></xsd:annotation></xsd:attribute></xsd:complexType><xsd:complexType name="User_LanguageObjectIDType"><xsd:annotation><xsd:documentation>Contains a unique identifier for an instance of an object.</xsd:documentation></xsd:annotation><xsd:simpleContent><xsd:extension base="xsd:string"><xsd:attribute name="type" type="wd:User_LanguageReferenceEnumeration" use="required"><xsd:annotation><xsd:documentation>The unique identifier type. Each "ID" for an instance of an object contains a type and a value. A single instance of an object can have multiple "ID" but only a single "ID" per "type".</xsd:documentation></xsd:annotation></xsd:attribute></xsd:extension></xsd:simpleContent></xsd:complexType></xsd:schema>
+<?xml version='1.0' encoding='UTF-8'?>
+<xsd:schema attributeFormDefault="qualified" elementFormDefault="qualified" targetNamespace="urn:com.workday/bsvc" xmlns:nyw="urn:com.netyourwork/aod" xmlns:wd="urn:com.workday/bsvc" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+	<xsd:element name="root" type="wd:rootType"/>
+	<xsd:simpleType name="RichText">
+		<xsd:restriction base="xsd:string"/>
+	</xsd:simpleType>
+	<xsd:simpleType name="User_LanguageReferenceEnumeration">
+		<xsd:restriction base="xsd:string">
+			<xsd:annotation>
+				<xsd:appinfo>
+					<wd:enumeration value="WID"/>
+					<wd:enumeration value="User_Language_ID"/>
+				</xsd:appinfo>
+			</xsd:annotation>
+		</xsd:restriction>
+	</xsd:simpleType>
+	<xsd:complexType name="Instance_IDType">
+		<xsd:simpleContent>
+			<xsd:extension base="xsd:string">
+				<xsd:attribute name="wd:parent_id" type="xsd:string"/>
+				<xsd:attribute name="wd:parent_type" type="xsd:string"/>
+				<xsd:attribute name="wd:type" type="xsd:string"/>
+			</xsd:extension>
+		</xsd:simpleContent>
+	</xsd:complexType>
+	<xsd:complexType name="InstanceObjectType">
+		<xsd:annotation wd:Is_Reference_ID="1"/>
+		<xsd:sequence>
+			<xsd:element maxOccurs="unbounded" minOccurs="0" name="ID" type="wd:Instance_IDType"/>
+		</xsd:sequence>
+		<xsd:attribute name="Descriptor" type="xsd:string"/>
+	</xsd:complexType>
+	<xsd:complexType name="rootType">
+		<xsd:sequence>
+			<xsd:element maxOccurs="unbounded" minOccurs="0" name="Translatable_Tenant_Data_Data" type="wd:Translatable_Class_Attribute_DataType"/>
+		</xsd:sequence>
+	</xsd:complexType>
+	<xsd:complexType name="rootTypeAPI">
+		<xsd:sequence>
+			<xsd:element maxOccurs="unbounded" minOccurs="0" name="Put_Translatable_Tenant_Data_Request" type="wd:Put_Translatable_Tenant_Data_RequestType"/>
+		</xsd:sequence>
+	</xsd:complexType>
+	<xsd:complexType name="Translatable_Class_Attribute_DataType">
+		<xsd:annotation>
+			<xsd:documentation>Parameters that specify the context of the translatation tasks.</xsd:documentation>
+			<xsd:appinfo>
+				<wd:Validation>
+					<wd:Validation_Message>Attribute is not translatable for specified Class.</wd:Validation_Message>
+				</wd:Validation>
+				<wd:Validation>
+					<wd:Validation_Message>Invalid Attribute Reference.</wd:Validation_Message>
+				</wd:Validation>
+				<wd:Validation>
+					<wd:Validation_Message>Invalid Class Name.</wd:Validation_Message>
+				</wd:Validation>
+				<wd:Validation>
+					<wd:Validation_Message>Class is not translatable.</wd:Validation_Message>
+				</wd:Validation>
+			</xsd:appinfo>
+		</xsd:annotation>
+		<xsd:sequence>
+			<xsd:element minOccurs="0" name="User_Language_Reference" type="wd:User_LanguageObjectType">
+				<xsd:annotation>
+					<xsd:documentation>Target User Language for translation.</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+			<xsd:element maxOccurs="1" name="Class_Name" type="xsd:string">
+				<xsd:annotation>
+					<xsd:documentation>Name of the object.</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+			<xsd:element name="Attribute_Reference" type="wd:Attribute_ReferenceType">
+				<xsd:annotation>
+					<xsd:documentation>Attribute information of the object.</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+			<xsd:element maxOccurs="unbounded" minOccurs="0" name="Translated_Value_for_Instance_Data" type="wd:Translated_Value_for_Instance_DataType">
+				<xsd:annotation>
+					<xsd:documentation>Translatable data in base language and target languages.</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+		</xsd:sequence>
+	</xsd:complexType>
+	<xsd:complexType name="Translated_Value_for_Instance_DataType">
+		<xsd:annotation>
+			<xsd:documentation>Translatable data in base language and target languages.</xsd:documentation>
+			<xsd:appinfo>
+				<wd:Validation>
+					<wd:Validation_Message>Instance Reference is not valid. Only tenanted instances can be uploaded for translation.</wd:Validation_Message>
+				</wd:Validation>
+			</xsd:appinfo>
+		</xsd:annotation>
+		<xsd:sequence>
+			<xsd:element name="Instance_Reference" type="wd:InstanceObjectType">
+				<xsd:annotation>
+					<xsd:documentation>A unique identifier for an instance of an object.</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+			<xsd:element maxOccurs="1" minOccurs="0" name="Base_Value" type="xsd:string">
+				<xsd:annotation>
+					<xsd:documentation>Plain text base value.</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+			<xsd:element maxOccurs="1" minOccurs="0" name="Translated_Value" type="xsd:string">
+				<xsd:annotation>
+					<xsd:documentation>Enter the translated value of the instance in the corresponding User Language and in plain text.</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+			<xsd:element maxOccurs="1" minOccurs="0" name="Rich_Base_Value" type="wd:RichText">
+				<xsd:annotation>
+					<xsd:documentation>Rich text base value.</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+			<xsd:element maxOccurs="1" minOccurs="0" name="Translated_Rich_Value" type="wd:RichText">
+				<xsd:annotation>
+					<xsd:documentation>Enter the translated value of the instance in the corresponding User Language and in rich text.</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+		</xsd:sequence>
+	</xsd:complexType>
+	<xsd:complexType name="Attribute_ReferenceType">
+		<xsd:annotation>
+			<xsd:documentation>Attribute information of the object.</xsd:documentation>
+			<xsd:appinfo>
+				<wd:Validation>
+					<wd:Validation_Message>Invalid Namespace URI.</wd:Validation_Message>
+				</wd:Validation>
+			</xsd:appinfo>
+		</xsd:annotation>
+		<xsd:sequence>
+			<xsd:element maxOccurs="1" name="Name" type="xsd:string">
+				<xsd:annotation>
+					<xsd:documentation>Attribute name of the object.</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+			<xsd:element maxOccurs="1" minOccurs="0" name="Namespace_URI" type="xsd:string">
+				<xsd:annotation>
+					<xsd:documentation>Workday internal use only. Customers should not populate this column.</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+		</xsd:sequence>
+	</xsd:complexType>
+	<xsd:complexType name="Put_Translatable_Tenant_Data_RequestType">
+		<xsd:sequence>
+			<xsd:element maxOccurs="unbounded" minOccurs="0" name="Translatable_Tenant_Data_Data" type="wd:Translatable_Class_Attribute_DataType"/>
+		</xsd:sequence>
+	</xsd:complexType>
+	<xsd:complexType name="User_LanguageObjectType">
+		<xsd:annotation wd:Is_Reference_ID="1"/>
+		<xsd:sequence>
+			<xsd:element maxOccurs="unbounded" minOccurs="0" name="ID" type="wd:User_LanguageObjectIDType"/>
+		</xsd:sequence>
+		<xsd:attribute name="Descriptor" type="xsd:string">
+			<xsd:annotation>
+				<xsd:documentation>Display information used to describe an instance of an object. This 'optional' information is for outbound descriptive purposes only and is not processed on inbound Workday Web Services requests.</xsd:documentation>
+			</xsd:annotation>
+		</xsd:attribute>
+	</xsd:complexType>
+	<xsd:complexType name="User_LanguageObjectIDType">
+		<xsd:annotation>
+			<xsd:documentation>Contains a unique identifier for an instance of an object.</xsd:documentation>
+		</xsd:annotation>
+		<xsd:simpleContent>
+			<xsd:extension base="xsd:string">
+				<xsd:attribute name="wd:type" type="wd:User_LanguageReferenceEnumeration" use="required">
+					<xsd:annotation>
+						<xsd:documentation>The unique identifier type. Each &quot;ID&quot; for an instance of an object contains a type and a value. A single instance of an object can have multiple &quot;ID&quot; but only a single &quot;ID&quot; per &quot;type&quot;.</xsd:documentation>
+					</xsd:annotation>
+				</xsd:attribute>
+			</xsd:extension>
+		</xsd:simpleContent>
+	</xsd:complexType>
+</xsd:schema>
