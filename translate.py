@@ -28,31 +28,45 @@
         Add timing count down
 
 """
-from .__init__ import *
+if __name__ == "__main__" and not __package__:
+    from os import sys, path
+    sys.path.insert(0,'/Library/Frameworks/Python.framework/Versions/3.5/lib/python3.5/site-packages/')
+    sys.path.append(path.abspath(path.join(path.dirname("."))))
+    sys.path.append(path.abspath(path.join(path.dirname(__file__), "..")))
+    sys.path.append(path.abspath(path.join(path.dirname(__file__))))
 import sys
 import argparse
 import os.path
 import codecs
 import csv as csv_module
-from .wd_languages import Translatable_Class_Attribute_DataType, \
-    User_LanguageObjectIDType, User_LanguageObjectType, Attribute_ReferenceType, \
-    Translated_Value_for_Instance_DataType, Instance_IDType, InstanceObjectType, \
-    Put_Translatable_Tenant_Data_RequestType, rootType, parse
 from lxml import etree
-from .translation import Translatable_Item, Translatable_Source, Source_Language_Translated_Value, Translatable_Class
+try:
+    from .__init__ import *
+    from .wd_languages import Translatable_Class_Attribute_DataType, \
+        User_LanguageObjectIDType, User_LanguageObjectType, Attribute_ReferenceType, \
+        Translated_Value_for_Instance_DataType, Instance_IDType, InstanceObjectType, \
+        Put_Translatable_Tenant_Data_RequestType, rootType, parse
+    from .translation import Translatable_Item, Translatable_Source, Source_Language_Translated_Value
+except SystemError:
+    from __init__ import *
+    from wd_languages import Translatable_Class_Attribute_DataType, \
+        User_LanguageObjectIDType, User_LanguageObjectType, Attribute_ReferenceType, \
+        Translated_Value_for_Instance_DataType, Instance_IDType, InstanceObjectType, \
+        Put_Translatable_Tenant_Data_RequestType, rootType, parse
+    from translation import Translatable_Item, Translatable_Source, Source_Language_Translated_Value
+
 
 def parse_command_line(cmd_args):
     parser = argparse.ArgumentParser(description=("Takes translation files from one tenant and"
             " puts the values into the file from another tenant"))
 
-    parser.add_argument("-xml-source", nargs="+", metavar="<Source file in wd xml format>", help=("This is the source file"
+    parser.add_argument("-xml-source", action="append", metavar="<Source file in wd xml format>", help=("This is the source file"
             "- the file that has the translated values."), default=[])
-    parser.add_argument("-csv-source", nargs="+", metavar="<Source file in csv format>", help=("This is the source file"
+    parser.add_argument("-csv-source", action="append", metavar="<Source file in csv format>", help=("This is the source file"
             "- the file that has the translated values."), default=[])
     parser.add_argument("-xml-dest", metavar="<Destination file in wd xml format>", help=("This is the destination file"
             "- the file that has the translated values."))
-    parser.add_argument("-respect", default=False, action="store_true", help=("Respects translated "
-            "values in the destination tenant. Will not overwrite them"))
+    parser.add_argument("-respect", help=("Respects translated from named source"))
     parser.add_argument("-pretty", default=False, action="store_true", help=("Generates copies of "
             "source and destination xml files in human readable format (with spacing). *DO NOT* use "
             "these files as a source file for Workday as the spacing will break things. File will be "
@@ -61,9 +75,18 @@ def parse_command_line(cmd_args):
             "Perform validations against files. Current validations are to check for "
             "inconsistent translations and to check for source reference ids that do not "
             "exist in destination."))
-    parser.add_argument("-all_lines", default=False, action="store_true", help=("Default behavior "
+    parser.add_argument("-all-lines", default=False, action="store_true", help=("Default behavior "
             "is to remove all lines from destination file that do not contain translatable values, "
             "use this flag if you want all lines included in the destination file."))
+    parser.add_argument("-generate-validation-file", default=False, action="store_true", help=("Generates validation"
+            " files by language to be used by users to validate translations"))
+    parser.add_argument("-validation-file-source", action="append", help=("Source file in csv format that was generated"
+            " by the -generate-validation-file command. Used to insert corrections"))
+    parser.add_argument("-filter-file", action="append", help=("File containing class names / names. Will only read in items "
+            "from destination that match items in filter file."))
+    parser.add_argument("-brute-force", default=False, action="store_true", help=("Format each record as it's own row (i.e. "
+            "do not group by language / class). This will result in a larger, slower loading file but is useful if you "
+            "are getting errors and don't know exactly which record is erroring out"))
 
     return parser.parse_args(cmd_args)
 
@@ -174,19 +197,17 @@ def csv(args):
                     sources_of_translations_with_no_destination_set.add((destination, class_name, name))
                     validation("Translation {} does not have a target in destination tenant file".format(source_language_translated_value.parent))
                     continue
-                ref_id = source_language_translated_value.ref_id(destination)
-                ref_id_type = source_language_translated_value.ref_id_type(destination)
-                parent_ref_id = source_language_translated_value.parent_ref_id(destination)
-                parent_ref_id_type = source_language_translated_value.parent_ref_id_type(destination)
-                base_value = source_language_translated_value.base_value
-                rich_base_value = source_language_translated_value.rich_base_value
-                translated_value = source_language_translated_value.translated_value
-                rich_translated_value = source_language_translated_value.rich_translated_value
-                instance_id = Instance_IDType(parent_ref_id, parent_ref_id_type, ref_id_type, ref_id)
-                instance_obj = InstanceObjectType()
-                instance_obj.add_ID(instance_id)
-                translated_value_for_instance_data = Translated_Value_for_Instance_DataType(instance_obj, base_value, translated_value, rich_base_value, rich_translated_value)
-                a.add_Translated_Value_for_Instance_Data((translated_value_for_instance_data))
+
+                for sk in source_language_translated_value.get_source_keys():
+                    base_value = source_language_translated_value.base_value
+                    rich_base_value = source_language_translated_value.rich_base_value
+                    translated_value = source_language_translated_value.translated_value
+                    rich_translated_value = source_language_translated_value.rich_translated_value
+                    instance_id = Instance_IDType(sk.parent_ref_id, sk.parent_ref_id_type, sk.ref_id_type, sk.ref_id)
+                    instance_obj = InstanceObjectType()
+                    instance_obj.add_ID(instance_id)
+                    translated_value_for_instance_data = Translated_Value_for_Instance_DataType(instance_obj, base_value, translated_value, rich_base_value, rich_translated_value)
+                    a.add_Translated_Value_for_Instance_Data((translated_value_for_instance_data))
             p.add_Translatable_Tenant_Data_Data(a)
         r.add_Put_Translatable_Tenant_Data_Request((p))
         r.export(f, 100, pretty_print=False)
@@ -199,7 +220,7 @@ def csv(args):
                            " has translations with the same class and class name with no match").format(translatable_item))
 
     pretty_fname = "{}.PRETTY{}".format(os.path.splitext(args.destination_file)[0],os.path.splitext(args.destination_file)[1])
-    with open(pretty_fname, "w", encoding="utf_16") as f:
+    with open(pretty_fname, "w", encoding="utf_8") as f:
         status("Writing pretty output file: {}".format(pretty_fname))
         #f.writelines(etree.tostring(dest_tenant.tree.getroot(), encoding="unicode", pretty_print=True))
 
@@ -221,7 +242,29 @@ def iload(args):
         generate_csv_file(new_fname, tenant)
     return
 
-def generate_xml_file(source):
+def generate_validation_file(source, languages=[]):
+    """ Validation file(s) by language that are targeted at user validation of translations. """
+    assert type(source) == Translatable_Source, "Invalid type passed for source"
+    for lang in source.get_languages():
+        if languages and lang not in languages:
+            continue
+        fname = "{}.{}-ValidationFile.csv".format(os.path.splitext(source.source_name)[0], lang)
+        info("Generating validation file {}".format(fname))
+        with open(fname, "w", encoding="utf-8") as csvfile:
+            csvwriter = csv_module.writer(csvfile)
+            csvwriter.writerow(["Class Name", "Name", "Ref ID Type", "Ref ID", "Parent Ref ID Type", "Parent Ref ID", "Base Value", "Translated Value", "Corrected Translated Value", "Rich Base Value", "Rich Translated Value", "Corrected Rich Translated Value", "Language"])
+            for klass in source.get_my_classes():
+                for ti in source.get_translatable_items_by_class(klass):
+                    for sltv in ti.get_source_language_translated_values(source, lang):
+                        for key in ti.get_source_keys(source):
+                            # Should just be one translation per language/source combo, and only be either rich or base
+                            #if ti.base_value and sltv.translated_value:
+                            csvwriter.writerow([klass.class_name, klass.name, key.ref_id_type, key.ref_id, key.parent_ref_id_type, key.parent_ref_id, ti.base_value, sltv.translated_value, None, sltv.rich_base_value, sltv.rich_translated_value, None, lang])
+                            #if ti.rich_base_value and sltv.rich_translated_value:
+                                #csvwriter.writerow([klass.class_name, klass.name, key.ref_id_type, key.ref_id, key.parent_ref_id_type, key.parent_ref_id, ti.rich_base_value, sltv.rich_translated_value])
+    return
+
+def generate_xml_file(source, brute_force=False):
     """
         This file takes a source (Translation_Source) and generates a Workday xml file. It uses logic / objects
         created by generateDS.py - the same logic used to parse the data from a xml file. The file was modified to
@@ -242,17 +285,21 @@ def generate_xml_file(source):
                 a = Translatable_Class_Attribute_DataType(user_language_reference, klass.class_name, attribute_reference)
                 for ti in source.get_translatable_items_by_class(klass):  # ti = Translatable Item
                     for sltv in ti.get_source_language_translated_values(source, lang):  # sltv = Source Language Translated Value
-                        (ref_id_type, ref_id, parent_ref_id_type, parent_ref_id) = ti.get_source_ids(source)
-                        base_value = ti.base_value
-                        rich_base_value = ti.rich_base_value
-                        translated_value = sltv.translated_value
-                        rich_translated_value = sltv.rich_translated_value
-                        instance_id = Instance_IDType(parent_ref_id, parent_ref_id_type, ref_id_type, ref_id)
-                        instance_obj = InstanceObjectType()
-                        instance_obj.add_ID(instance_id)
-                        translated_value_for_instance_data = Translated_Value_for_Instance_DataType(instance_obj, base_value, translated_value, rich_base_value, rich_translated_value)
-                        a.add_Translated_Value_for_Instance_Data((translated_value_for_instance_data))
-            r.add_Translatable_Tenant_Data_Data(a)
+                        for sk in ti.get_source_keys(source):
+                            base_value = ti.base_value
+                            rich_base_value = ti.rich_base_value
+                            translated_value = sltv.translated_value
+                            rich_translated_value = sltv.rich_translated_value
+                            instance_id = Instance_IDType(sk.parent_ref_id, sk.parent_ref_id_type, sk.ref_id_type, sk.ref_id)
+                            instance_obj = InstanceObjectType()
+                            instance_obj.add_ID(instance_id)
+                            translated_value_for_instance_data = Translated_Value_for_Instance_DataType(instance_obj, base_value, translated_value, rich_base_value, rich_translated_value)
+                            a.add_Translated_Value_for_Instance_Data((translated_value_for_instance_data))
+                            if brute_force:
+                                r.add_Translatable_Tenant_Data_Data(a)
+                                a = Translatable_Class_Attribute_DataType(user_language_reference, klass.class_name, attribute_reference)
+            if not brute_force:
+                r.add_Translatable_Tenant_Data_Data(a)
         r.export(f, 100, pretty_print=False)
     return
 
@@ -276,12 +323,74 @@ def generate_csv_file(file_name, tenant):
     sys.exit()
     return
 
+def parse_csv_validation_file(fname, ignore_untranslated_items=False):
+    """
+        Open the supplied csv file and return a list of translation items
+    """
+    ret_set = set()
+    encodings_to_try = ["utf-8", "cp1252", "utf-16", "latin-1"]
+    success_with_encoding = False
+    for encoding in encodings_to_try:
+        try:
+            with open(fname, "rU", encoding=encoding) as csvfile:
+                source = Translatable_Source(fname)
+                reader = csv_module.reader(csvfile)
+                # First row is a head row that will give us the language tags
+                CLASS_NAME_I = 0
+                NAME_I = 1
+                REFERENCE_TYPE_I = 2
+                REFERENCE_ID_I = 3
+                PARENT_REF_ID_TYPE_I = 4
+                PARENT_REF_ID_I = 5
+                BASE_VALUE_I = 6
+                TRANSLATED_BASE_VALUE_I = 7
+                CORRECTED_BASE_VALUE_I = 8
+                RICH_BASE_VALUE_I = 9
+                TRANSLATED_RICH_VALUE_I = 10
+                CORRECTED_RICH_VALUE_I = 11
+                LANGUAGE_I = 12
+
+                info("Processing {} with encoding {}".format(fname, encoding))
+                for row in reader:
+                    if not row[CLASS_NAME_I] or row[CLASS_NAME_I] == "Class Name":
+                        continue  # Skip blank lines, class name required, skip header
+                    if row[CORRECTED_BASE_VALUE_I]:
+                        translated_value = row[CORRECTED_BASE_VALUE_I]
+                    else:
+                        translated_value = row[TRANSLATED_BASE_VALUE_I]
+                    if row[CORRECTED_RICH_VALUE_I]:
+                        rich_translated_value = row[CORRECTED_RICH_VALUE_I]
+                    else:
+                        rich_translated_value = row[TRANSLATED_RICH_VALUE_I]
+                    try:
+                        t = Translatable_Item(row[CLASS_NAME_I], row[NAME_I], row[REFERENCE_TYPE_I],
+                                              row[REFERENCE_ID_I], row[PARENT_REF_ID_TYPE_I], row[PARENT_REF_ID_I],
+                                              row[BASE_VALUE_I], row[RICH_BASE_VALUE_I], source, row[LANGUAGE_I],
+                                              translated_value, rich_translated_value)
+                    except:
+                        error("Had a problem with row {}".format(row))
+                        raise Exception("Error processing row {}".format(row))
+                    ret_set.add(t)
+
+            # End of with block
+            success_with_encoding = True
+            break  # Break out of for loop for encodings
+        except UnicodeError as e:
+            info("Tried {} encoding and failed".format(encoding))
+            err = e
+            continue
+    if not success_with_encoding:
+        # No good encodings found
+        raise err
+        #raise UnicodeError("No encodings found that worked with supplied file")
+    return ret_set
+
 def parse_csv_file(fname, ignore_untranslated_items=False):
     """
         Open the supplied csv file and return a list of translation items
     """
     ret_list = []
-    encodings_to_try = ["utf_16", "utf_8"]
+    encodings_to_try = ["utf-8", "utf-16"]
     success_with_encoding = False
     for encoding in encodings_to_try:
         try:
@@ -295,7 +404,9 @@ def parse_csv_file(fname, ignore_untranslated_items=False):
                 REFERENCE_ID_I = 3
                 RICH_TEXT_FLAG_I = 4
                 BASE_VALUE_I = 5
-                TRANSLATION_START_I = 6
+                PARENT_REF_ID_TYPE_I = 8
+                PARENT_REF_ID_I = 9
+                TRANSLATION_START_I = 10
                 lang_list = next(reader)[TRANSLATION_START_I:]
                 info("From file {}, the language list is: {}".format(fname, lang_list))
                 for row in reader:
@@ -310,8 +421,12 @@ def parse_csv_file(fname, ignore_untranslated_items=False):
                         base_value = row[BASE_VALUE_I]
                         rich_base_value = None
                     try:
+                        if row[PARENT_REF_ID_I] == "NA":
+                            row[PARENT_REF_ID_I] = None
+                        if row[PARENT_REF_ID_TYPE_I] == "NA":
+                            row[PARENT_REF_ID_TYPE_I] = None
                         t = Translatable_Item(row[CLASS_NAME_I], row[NAME_I], row[REFERENCE_TYPE_I],
-                                              row[REFERENCE_ID_I], None, None, base_value, rich_base_value, source)
+                                              row[REFERENCE_ID_I], row[PARENT_REF_ID_TYPE_I], row[PARENT_REF_ID_I], base_value, rich_base_value, source)
                     except:
                         print(row)
                         raise
@@ -340,7 +455,7 @@ def parse_csv_file(fname, ignore_untranslated_items=False):
 
     return ret_list
 
-def parse_xml_file(fname, ignore_untranslated_items=False):
+def parse_xml_file(fname, ignore_untranslated_items=False, filter=None):
     """
         This parses a Workday xml export file. It uses logic generated by GenerateDS.py, which reads the xsd schema
         and generates matching WD classes. There is one change, the xsd is for REST service, and there is one top level
@@ -348,7 +463,7 @@ def parse_xml_file(fname, ignore_untranslated_items=False):
         translatable classes, and not the put request. Then generateDS.py was run and the resulting objects are used.
         Returns a list of Translatable_Item(s)
     """
-    ret_list = []
+    ret_set = set()
 
     # Create a source
     source = Translatable_Source(fname)
@@ -367,6 +482,8 @@ def parse_xml_file(fname, ignore_untranslated_items=False):
         klass_class_name = klass.get_Class_Name()
         klass_name = klass.get_Attribute_Reference().get_Name()
         klass_namespace_URI = klass.get_Attribute_Reference().get_Namespace_URI()
+        if filter and (klass_class_name, klass_name) not in filter:
+            continue
         if False:
             debug("Class name |{}| name |{}| namespace |{}| Lang |{}|".format(klass_class_name, klass_name, klass_namespace_URI, lang))
         for translatable_values in klass.get_Translated_Value_for_Instance_Data():
@@ -388,47 +505,72 @@ def parse_xml_file(fname, ignore_untranslated_items=False):
             if ignore_untranslated_items:
                 if not translated_rich_base_value and not translated_base_value:
                     continue
-
-            ret_list.append(Translatable_Item(klass_class_name, klass_name, ref_type, ref_value, parent_ref_type,
+            ret_set.add(Translatable_Item(klass_class_name, klass_name, ref_type, ref_value, parent_ref_type,
                     parent_ref_id, base_value, rich_base_value, source, lang, translated_base_value,
                     translated_rich_base_value, klass_namespace_URI))
 
-    debug("In parse_xml_file: Processed {}. Number of translatable items generated = {}".format(fname, len(ret_list)))
-    return ret_list
+    debug("In parse_xml_file: Processed {}. Number of translatable items generated = {}".format(fname, len(ret_set)))
+    return ret_set
+
+def parse_filter_file(fname):
+    ret_set = set()
+    # Assumes no header row
+    with open(fname, "rU") as csvfile:
+        reader = csv_module.reader(csvfile)
+        for row in reader:
+            if not row[0] and not row[1]:
+                continue
+            if row[0]:
+                class_name = row[0]
+            ret_set.add((class_name, row[1]))
+    return ret_set
 
 def main(cmd_args):
     global args, start_time, last_update_time
 
-    debug("Called with arguments: {}".format(cmd_args))
+    #debug("Called with arguments: {}".format(cmd_args))
 
     # Do some setup
     start_time = int(time.time())
     last_update_time = start_time
 
     args = parse_command_line(cmd_args)
-    debug("args {}".format(args))
+    #debug("args {}".format(args))
+
+    classes_to_filter = set()
 
     results_dict = dict()
+
+    # Generate the filter file if required
+    if args.filter_file:
+        for fname in args.filter_file:
+            info("Processing csv filter file <{}>".format(fname))
+            classes_to_filter |= parse_filter_file(fname)
 
     # Go through all the Workday xml source files, usually one per language
     if args.xml_source:
         for fname in args.xml_source:
-            info("Processing {}...".format(fname))
-            results_dict[fname] = parse_xml_file(fname, True)
+            info("Processing xml source file <{}>...".format(fname))
+            results_dict[fname] = parse_xml_file(fname, True, classes_to_filter)
 
     # Go through any csv files that were provided - these are also source files
     if args.csv_source:
         for fname in args.csv_source:
-            info("Processing {}...".format(fname))
+            info("Processing csv source file <{}>...".format(fname))
             results_dict[fname] = parse_csv_file(fname, True)
+
+    if args.validation_file_source:
+        for fname in args.validation_file_source:
+            info("Processing validation source file <{}>...".format(fname))
+            results_dict[fname] = parse_csv_validation_file(fname, True)
 
     # If there is a target Workday tenant, then we need the WIDs. So load the entire file even those items without
     # translations
     if args.xml_dest:
         missing_destination = set()
         destination = Translatable_Source(args.xml_dest) # This will return the existing destination
-        info("Processing {} ...".format(args.xml_dest))
-        results_dict[args.xml_dest] = parse_xml_file(args.xml_dest, False)
+        info("Processing xml destination file <{}> ...".format(args.xml_dest))
+        results_dict[args.xml_dest] = parse_xml_file(args.xml_dest, False, classes_to_filter)
 
         # Now we are going to perform some validations
         # Source translations with no destination
@@ -439,24 +581,36 @@ def main(cmd_args):
         if missing_destination and True:  # Add a command line option  to turn this on/off
             no_dest_err_fname = "No_Matching_Destination_Found.txt"
             info("There are {} translated items that have no destination. See details in {}".format(len(missing_destination), no_dest_err_fname))
-            with open(no_dest_err_fname, "a", encoding="utf_8") as f:
+            with open(no_dest_err_fname, "w", encoding="utf_8") as f:
                 f.write("Processed on {}\n".format(time.asctime()))
                 f.write("Data in the format of source of translation source|destination for translation|translation details\n")
+                f.write("There were {} translatable items with no destination.\n".format(len(missing_destination)))
                 for err in missing_destination:
-                    f.write("{}|{}|{}\n".format(err[00], err[1], err[2]))
+                    f.write("***\nSource: <{}> Destination: <{}> \n\tItem: {}\n".format(err[0], err[1], err[2]))
+                    f.write("My translatable item key <{}>\n".format(err[2].key))
+                    f.write("Source keys: \n")
+                    for key in err[2].get_source_keys():
+                        f.write("\t<{}>\n".format(key))
 
         # Migrate translations and optimize - we are going to migrate any translations that have a translation AND exist
         # in the destination. We are moving them to a "new destination' using the ref ids from the user supplied destination
         new_source = Translatable_Source("{}.WITH_TRANSLATIONS{}".format(os.path.splitext(args.xml_dest)[0], os.path.splitext(args.xml_dest)[1]))
         new_list = set()
+        if args.respect:
+            migration_rule = Translatable_Item.Migration_Rule.SOURCE_PRIORITY(Translatable_Source.by_name[args.respect][0])
+        else:
+            migration_rule = Translatable_Item.Migration_Rule.FIRST_AVAILABLE()
         for translatable_item in results_dict[args.xml_dest]:
             if translatable_item.has_translation:
-                new_list.add(translatable_item.migrate_translation(new_source, destination, Translatable_Item.Migration_Strategy.FIRST_AVAILABLE))
+                new_list.add(translatable_item.migrate_translation(new_source, destination, migration_rule))
         info("New source created of {}".format(new_source))
         info("Translatable item count: {}".format(new_source.item_count))
 
-        # Export the new source
-        generate_xml_file(new_source)
+        if args.generate_validation_file:
+            generate_validation_file(new_source)
+        else:
+            # Export the new source
+            generate_xml_file(new_source, args.brute_force)
 
     return
 

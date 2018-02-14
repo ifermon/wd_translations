@@ -1,5 +1,8 @@
 from collections import defaultdict
-from .__init__ import debug, error
+try:
+    from .__init__ import debug, error
+except SystemError:
+    from __init__ import debug, error
 from enum import Enum
 
 class Base(object):
@@ -109,8 +112,21 @@ class Translatable_Class(Indexable_Upsert):
 
 class Translatable_Item(Indexable_Upsert):
     # Migration rules
-    class Migration_Strategy(Enum):
-        FIRST_AVAILABLE = 1
+    class Migration_Rule(object):
+        @classmethod
+        def FIRST_AVAILABLE(cls):
+            mr = cls()
+            mr.rule = cls.FIRST_AVAILABLE
+            return mr
+
+        @classmethod
+        def SOURCE_PRIORITY(cls, source):
+            assert type(source) == Translatable_Source, "Invalid source typed passed type {} value {}".format(
+                type(source), source)
+            mr = cls()
+            mr.rule = cls.SOURCE_PRIORITY
+            mr.source = source
+            return mr
 
     @classmethod
     def generate_key(cls, *args):
@@ -155,11 +171,11 @@ class Translatable_Item(Indexable_Upsert):
             self._base_value = base_value
             self._rich_base_value = rich_base_value
             self._my_sources = set()
-            self._my_source_keys = {}
+            self._my_source_keys = defaultdict(set)
             self._my_translations = []
             self._add_to_index("by_class_and_name", (class_name, name))
             self._namespace = namespace
-        if namespace:
+        if namespace: # I potentially overwrite this but not going to worry about it now, should be w/ class
             self._namespace = namespace
         if type(source_name_or_obj) == str:
             source = Translatable_Source(source_name_or_obj, self)
@@ -167,7 +183,7 @@ class Translatable_Item(Indexable_Upsert):
             source = source_name_or_obj
         else:
             raise TypeError("source must be string or of type source. Type is {}".format(type(source_name_or_obj)))
-        self._add_to_index("by_source_class_name_and_name", (source, class_name, name))
+        #self._add_to_index("by_source_class_name_and_name", (source, class_name, name))
         self.add_source(source)
         self.add_source_key(source, ref_id_type, ref_id, parent_ref_id_type, parent_ref_id, self._translatable_class)
         self.add_translation(source, language, translated_value, rich_translated_value)
@@ -176,9 +192,8 @@ class Translatable_Item(Indexable_Upsert):
 
     def add_source_key(self, source, ref_id_type, ref_id, parent_ref_id_type, parent_ref_id, translatable_class):
         assert type(source) == Translatable_Source, "Invalid source type passed to add source key"
-        self._my_sources.add(source)
-        self._my_source_keys[source] = Translatable_Item_Translation_Source_Key(source, self, ref_id_type, ref_id,
-                parent_ref_id_type, parent_ref_id, translatable_class)
+        self._my_source_keys[source].add(Translatable_Item_Translation_Source_Key(source, self, ref_id_type, ref_id,
+                parent_ref_id_type, parent_ref_id, translatable_class))
         return
 
     def add_source(self, source):
@@ -199,8 +214,6 @@ class Translatable_Item(Indexable_Upsert):
                 ret_set.add(sltv.language)
         return ret_set
 
-    def get_translatable_item_source_key(self, source): return self._my_source_keys[source]
-
     def has_source(self, source): return source in self._my_sources
 
     def migrate_translation(self, new_source, ref_id_source, rule):
@@ -211,22 +224,37 @@ class Translatable_Item(Indexable_Upsert):
         assert type(ref_id_source) == Translatable_Source, "Invalid type for new_source"
         # Using the first one for each language for now, we can add more methods later
         languages_processed  = set()
+        self.add_source(new_source)
+        for sk in self._my_source_keys[ref_id_source]:
+            self.add_source_key(new_source, sk.ref_id_type, sk.ref_id, sk.parent_ref_id_type, sk.parent_ref_id, self._translatable_class)
+
+        if rule == Translatable_Item.Migration_Rule.SOURCE_PRIORITY:
+            # We will just re-order the list so that the priority sources come first
+            def source_priority(sltv): # Nothing important about 1 or 5, just 1 is less than 5 so comes first
+                if sltv.source == rule.source: return 1
+                else: return 5
+            self._my_translations.sort(key=source_priority)
         for sltv in self._my_translations:
             if sltv.language in languages_processed:
                 continue
             self.add_translation(new_source, sltv.language, sltv.translated_value, sltv.rich_translated_value)
             new_source.add_translatable_item(self)
-            sk = self._my_source_keys[ref_id_source]
-            self.add_source_key(new_source, sk.ref_id_type, sk.ref_id, sk.parent_ref_id_type, sk.parent_ref_id, self._translatable_class)
             languages_processed.add(sltv.language)
+
+
         return self
 
-    def get_source_ids(self, source):
-        assert type(source) == Translatable_Source, "Invalid type passed for source"
-        if not self.has_source(source):
+    def get_source_keys(self, source=None):
+        assert not source or type(source) == Translatable_Source, "Invalid type passed for source"
+        if not source:
+            for s in self._my_sources:
+                for sk in self._my_source_keys[s]:
+                    yield sk
+        elif not self.has_source(source):
             raise ValueError("{} not a valid source for translatable item".format(source))
-        sk = self._my_source_keys[source]
-        return (sk.ref_id_type, sk.ref_id, sk.parent_ref_id_type, sk.parent_ref_id)
+        else:
+            for sk in self._my_source_keys[source]:
+                yield sk
 
     def add_translation(self, source, language, translated_value, rich_translated_value):
         if translated_value or rich_translated_value:
@@ -252,8 +280,8 @@ class Translatable_Item(Indexable_Upsert):
     def key(self): return self._key
     @property
     def has_translation(self): return bool(self._my_translations)
-    def __repr__(self): return "Translatable Item: Class <{}> Name <{}> Base Value <{}> Rich Base Value <{}>".format(
-            self._class_name, self._name, self._base_value, self._rich_base_value )
+    def __repr__(self): return "Key <{}> Base Value <{}> Rich Base Value <{}>".format(
+            self._key, self._base_value, self._rich_base_value )
 
 class Translatable_Item_Translation_Source_Key(Upsert):
     @classmethod
@@ -264,8 +292,7 @@ class Translatable_Item_Translation_Source_Key(Upsert):
         parent_ref_id_type = args[4]
         parent_ref_id = args[5]
         klass = args[6]
-        i = source.next_seq()
-        return (source, ref_id_type, ref_id, parent_ref_id_type, parent_ref_id, klass, i)
+        return (source, ref_id_type, ref_id, parent_ref_id_type, parent_ref_id, klass)
 
     """ For WID based translatable items we need to keep the specific source key """
     def __init__(self, source, translatable_item, ref_id_type, ref_id, parent_ref_id_type, parent_ref_id, translatable_class):
@@ -282,10 +309,6 @@ class Translatable_Item_Translation_Source_Key(Upsert):
             self._parent_ref_id = parent_ref_id
             self._my_source_language_translated_values = []
             self._translatable_class = translatable_class
-        else:
-            error("Item {} is a duplicate in source {}".format(self, translatable_item))
-            error("My key is {}".format(self._key))
-            raise Exception
         return
 
     @property
@@ -296,6 +319,8 @@ class Translatable_Item_Translation_Source_Key(Upsert):
     def ref_id_type(self): return self._ref_id_type
     @property
     def ref_id(self): return self._ref_id
+
+    def __repr__(self): return str(self._key)
 
     def add_source_language_translated_value(self, source_language_translated_value):
         self._my_source_language_translated_values.append(source_language_translated_value)
@@ -314,12 +339,13 @@ class Translatable_Source(Indexable_Upsert):
             self._first_time_in_init = False
             self._source_name = source_name
             self._my_translatable_items = set()
+            self._add_to_index("by_name", source_name)
             self._my_source_language_translated_values = []
             self._namespace = None
             # This is used as a unique identifier in case the same translatable item has more than on ID or occurrs more than once in a file
             self._next_seq = 0
             self._my_classes = set()
-            self._my_translatable_items_by_class = defaultdict(list)
+            self._my_translatable_items_by_class = defaultdict(set)
             # The values below are the original values from the source. If non-tranlsated items were not loaded than
             # the counts of child classes will be different
             self._number_of_classes = 0
@@ -346,7 +372,8 @@ class Translatable_Source(Indexable_Upsert):
     def add_translatable_item(self, translatable_item):
         self._my_translatable_items.add(translatable_item)
         self._my_classes.add(translatable_item.translatable_class)
-        self._my_translatable_items_by_class[translatable_item.translatable_class].append(translatable_item)
+        setlen = len(self._my_translatable_items_by_class)
+        self._my_translatable_items_by_class[translatable_item.translatable_class].add(translatable_item)
         return
 
     def next_seq(self):
@@ -354,6 +381,12 @@ class Translatable_Source(Indexable_Upsert):
         return self._next_seq
 
     def get_my_classes(self): return self._my_classes
+
+    def get_languages(self):
+        ret_set = set()
+        for klass in self._my_classes:
+            ret_set = ret_set | klass.get_languages()
+        return ret_set
 
     @property
     def source_name(self): return self._source_name
@@ -372,17 +405,25 @@ class Translatable_Source(Indexable_Upsert):
 
     def __repr__(self): return self._source_name
 
-class Source_Language_Translated_Value(Indexable):
+class Source_Language_Translated_Value(Indexable_Upsert):
+    @classmethod
+    def generate_key(cls, *args):
+        parent = args[4]
+        language = args[1]
+        source  = args[0]
+        return (source, parent, language)
+
     def __init__(self, source, language, translated_value, rich_translated_value, parent):
         assert type(source) == Translatable_Source, "Invalid type passed for source {}".format(type(source))
         assert type(parent) == Translatable_Item, "Invaid type passed for parent {}".format(type(parent))
-        self._source = source
-        source.add_source_language_translated_value(self)
-        self._language = language
-        self._translated_value = translated_value
-        self._rich_translated_value = rich_translated_value
-        self._parent = parent
-        self._add_to_index("by_language_class_name_name_and_source", (language, parent.class_name, parent.name, source))
+        if self._first_time_in_init:
+            self._source = source
+            source.add_source_language_translated_value(self)
+            self._language = language
+            self._translated_value = translated_value
+            self._rich_translated_value = rich_translated_value
+            self._parent = parent
+            self._add_to_index("by_language_class_name_name_and_source", (language, parent.class_name, parent.name, source))
         return
 
     def has_source(self, source): return source in self._parent._my_sources
@@ -402,21 +443,8 @@ class Source_Language_Translated_Value(Indexable):
     @property
     def parent(self): return self._parent
 
-    def ref_id(self, source):
-        assert type(source) == Translatable_Source, "Invalid source type passed"
-        return self._parent.get_translatable_item_source_key(source).ref_id
-
-    def ref_id_type(self, source):
-        assert type(source) == Translatable_Source, "Invalid source type passed"
-        return self._parent.get_translatable_item_source_key(source).ref_id_type
-
-    def parent_ref_id(self, source):
-        assert type(source) == Translatable_Source, "Invalid source type passed"
-        return self._parent.get_translatable_item_source_key(source).parent_ref_id
-
-    def parent_ref_id_type(self, source):
-        assert type(source) == Translatable_Source, "Invalid source type passed"
-        return self._parent.get_translatable_item_source_key(source).parent_ref_id_type
+    def get_source_keys(self):
+        return self._parent.get_source_keys(self._source)
 
 if __name__ == "__main__":
     # Some simple tests
